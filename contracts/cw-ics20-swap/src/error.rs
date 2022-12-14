@@ -77,12 +77,6 @@ pub enum ContractError {
     #[error("Invalid amount value")]
     InvalidAmountValue {},
 
-    #[error("Only support one lockup account by channel")]
-    OnlyLockupByChannel {},
-
-    #[error("No found lockup account")]
-    LockupNotFound {},
-
     #[error("This message does no accept funds")]
     NonPayable {},
 }

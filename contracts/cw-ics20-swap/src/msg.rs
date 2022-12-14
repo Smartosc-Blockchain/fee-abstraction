@@ -1,4 +1,3 @@
-use cosmwasm_std::Uint64;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +8,6 @@ use crate::state::ChannelInfo;
 pub struct InitMsg {
     /// Default timeout for ics20 packets, specified in seconds
     pub default_timeout: u64,
-    /// Lockup code ID
-    pub lockup_id: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -43,12 +40,6 @@ pub enum QueryMsg {
     Channel { id: String },
     /// Show the Config. Returns ConfigResponse
     Config {},
-    /// Returns the lockup address of the channel and owner, empty if not created.
-    /// Return type: LockupResponse.
-    Lockup { channel: String, owner: String },
-    /// Show all lockups created by channel.
-    /// Return type: ListLockupResponse.
-    AllLockups { channel: String },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -70,32 +61,4 @@ pub struct ChannelResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct ConfigResponse {
     pub default_timeout: u64,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct LockupResponse {
-    /// Lockup owner
-    pub owner: String,
-    /// Lockup contract address
-    pub address: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct ListLockupResponse {
-    pub lockups: Vec<LockupResponse>,
-}
-
-// Lockup contract InstantiateMsg
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
-pub struct LockupInitMsg {
-    pub admin: String,
-}
-
-// Lockup contract ExecuteMsg
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum LockupExecuteMsg {
-    Lock { duration: Uint64 },
-    Unlock { id: Uint64 },
-    Claim { denom: String },
 }

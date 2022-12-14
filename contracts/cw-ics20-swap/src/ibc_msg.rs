@@ -51,14 +51,6 @@ pub struct Voucher {
 pub enum OsmoPacket {
     /// Swap assets.
     Swap(SwapPacket),
-    /// Join a specific pool.
-    JoinPool(JoinPoolPacket),
-    /// Exit a specific pool.
-    ExitPool(ExitPoolPacket),
-    LockupAccount {},
-    Lock(LockPacket),
-    Claim(ClaimPacket),
-    Unlock(UnlockPacket),
 }
 
 /// Swap Packet
@@ -74,47 +66,8 @@ pub struct SwapAmountInRoute {
     pub token_out_denom: String,
 }
 
-/// JoinPool Packet
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct JoinPoolPacket {
-    pub pool_id: Uint64,
-    pub share_out_min_amount: Uint128,
-}
-
-/// JoinPool Packet
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct ExitPoolPacket {
-    pub token_out_denom: String,
-    pub token_out_min_amount: Uint128,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct LockPacket {
-    pub duration: Uint64,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct ClaimPacket {
-    pub denom: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct UnlockPacket {
-    pub id: Uint64,
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct AmountResultAck {
     pub amount: Uint128,
     pub denom: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct LockResultAck {
-    pub lock_id: Uint64,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct LockupAck {
-    pub contract: String,
 }

@@ -9,10 +9,6 @@ use osmo_proto::proto_ext::proto_decode;
 
 pub const SWAP_EVENT: &str = "token_swapped";
 pub const SWAP_ATTR: &str = "tokens_out";
-pub const JOIN_POOL_EVENT: &str = "coinbase";
-pub const JOIN_POOL_ATTR: &str = "amount";
-pub const EXIT_POOL_EVENT: &str = "token_swapped";
-pub const EXIT_POOL_ATTR: &str = "tokens_out";
 
 pub trait GammResult {
     fn amount(&self) -> &String;

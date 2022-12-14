@@ -1,29 +1,24 @@
 use cosmwasm_std::{
-    attr, coins, entry_point, from_binary, to_binary, BankMsg, Binary, Coin, CosmosMsg, DepsMut,
+    attr, entry_point, from_binary, to_binary, BankMsg, Binary, CosmosMsg, DepsMut,
     Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg,
     IbcEndpoint, IbcOrder, IbcPacket, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg,
-    IbcReceiveResponse, Reply, Response, SubMsg, SubMsgResult, WasmMsg,
+    IbcReceiveResponse, Reply, Response, SubMsg, SubMsgResult,
 };
 
 use crate::amount::Amount;
 use crate::error::{ContractError, Never};
 use crate::ibc_msg::{
-    AmountResultAck, ClaimPacket, ExitPoolPacket, Ics20Ack, Ics20Packet, JoinPoolPacket,
-    LockPacket, LockupAck, OsmoPacket, SwapPacket, UnlockPacket, Voucher,
+    Ics20Ack, Ics20Packet, OsmoPacket, SwapPacket, Voucher,
 };
-use crate::msg::{LockupExecuteMsg, LockupInitMsg};
 use crate::parse::{
-    parse_gamm_result, parse_pool_id, GammResult, EXIT_POOL_ATTR, EXIT_POOL_EVENT, JOIN_POOL_ATTR,
-    JOIN_POOL_EVENT, SWAP_ATTR, SWAP_EVENT,
+    parse_gamm_result, GammResult, SWAP_ATTR, SWAP_EVENT,
 };
 use crate::state::{
     increase_channel_balance, reduce_channel_balance, restore_balance_reply, ChannelInfo,
-    ReplyArgs, CHANNEL_INFO, CONFIG, LOCKUP, REPLY_ARGS,
+    ReplyArgs, CHANNEL_INFO, REPLY_ARGS,
 };
-use cw_utils::{parse_execute_response_data, parse_reply_instantiate_data};
+use cw_utils::{parse_execute_response_data};
 use osmo_proto::osmosis::gamm::v1beta1::{
-    MsgExitSwapShareAmountInResponse as ExitResponse,
-    MsgJoinSwapExternAmountInResponse as JoinResponse,
     MsgSwapExactAmountInResponse as SwapResponse,
 };
 use osmo_proto::proto_ext::MessageExt;
@@ -51,29 +46,13 @@ fn ack_fail(err: String) -> Binary {
 
 const RECEIVE_ID: u64 = 1337;
 const SWAP_ID: u64 = 0xcb37;
-const JOIN_POOL_ID: u64 = 0xad54;
-const EXIT_POOL_ID: u64 = 0xfa61;
 const ACK_FAILURE_ID: u64 = 0xfa17;
-const LOCKUP_ID: u64 = 0xdf16;
-const LOCK_TOKEN_ID: u64 = 0xbc42;
-const CLAIM_TOKEN_ID: u64 = 0x1654;
-const UNLOCK_TOKEN_ID: u64 = 0x6f11;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
     match reply.id {
         RECEIVE_ID => reply_receive(deps, reply),
         SWAP_ID => reply_gamm_result::<SwapResponse>(deps, reply, SWAP_EVENT, SWAP_ATTR),
-        JOIN_POOL_ID => {
-            reply_gamm_result::<JoinResponse>(deps, reply, JOIN_POOL_EVENT, JOIN_POOL_ATTR)
-        }
-        EXIT_POOL_ID => {
-            reply_gamm_result::<ExitResponse>(deps, reply, EXIT_POOL_EVENT, EXIT_POOL_ATTR)
-        }
-        LOCKUP_ID => reply_lockup_account(deps, reply),
-        LOCK_TOKEN_ID => reply_ack_from_data(deps, reply),
-        CLAIM_TOKEN_ID => reply_claim_result(deps, reply),
-        UNLOCK_TOKEN_ID => reply_ack_on_error(reply),
         ACK_FAILURE_ID => reply_ack_on_error(reply),
         _ => Err(ContractError::UnknownReplyId { id: reply.id }),
     }
@@ -114,64 +93,6 @@ pub fn reply_gamm_result<M: GammResult + osmo_proto::Message + std::default::Def
     }
 }
 
-pub fn reply_lockup_account(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
-    match reply.result.clone() {
-        SubMsgResult::Ok(_) => {
-            let res = parse_reply_instantiate_data(reply);
-
-            match res {
-                Ok(data) => {
-                    let reply_args = REPLY_ARGS.load(deps.storage)?;
-
-                    LOCKUP.save(
-                        deps.storage,
-                        (&reply_args.channel, &reply_args.sender),
-                        &data.contract_address,
-                    )?;
-                    let ack = LockupAck {
-                        contract: data.contract_address,
-                    };
-                    let data = to_binary(&ack).unwrap();
-
-                    Ok(Response::new().set_data(ack_success_with_body(data)))
-                }
-                Err(err) => Ok(Response::new().set_data(ack_fail(err.to_string()))),
-            }
-        }
-        SubMsgResult::Err(err) => Ok(Response::new().set_data(ack_fail(err))),
-    }
-}
-
-pub fn reply_claim_result(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
-    match reply.result {
-        SubMsgResult::Ok(tx) => {
-            let data = tx.data.ok_or(ContractError::MissingReplyData {})?;
-            let data = parse_execute_response_data(data.as_slice())?
-                .data
-                .ok_or(ContractError::MissingReplyData {})?;
-
-            let token: Coin = from_binary(&data)?;
-            let reply_args = REPLY_ARGS.load(deps.storage)?;
-            increase_channel_balance(
-                deps.storage,
-                &reply_args.channel,
-                &token.denom,
-                token.amount,
-            )?;
-
-            let ack = AmountResultAck {
-                denom: token.denom,
-                amount: token.amount,
-            };
-            let data = to_binary(&ack).unwrap();
-            Ok(Response::new().set_data(ack_success_with_body(data)))
-        }
-        SubMsgResult::Err(err) => {
-            restore_balance_reply(deps.storage)?;
-            Ok(Response::new().set_data(ack_fail(err)))
-        }
-    }
-}
 
 pub fn reply_ack_from_data(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
     match reply.result {
@@ -351,27 +272,6 @@ fn do_ibc_packet_receive(
         let contract = env.contract.address.into();
         match action {
             OsmoPacket::Swap(swap) => swap_receive(swap, msg.sender, to_send, contract),
-            OsmoPacket::JoinPool(join_pool) => {
-                receive_join_pool(join_pool, msg.sender, to_send, contract)
-            }
-            OsmoPacket::ExitPool(exit_pool) => {
-                receive_exit_pool(exit_pool, msg.sender, to_send, contract)
-            }
-            OsmoPacket::LockupAccount {} => {
-                nonpayable(&to_send)?;
-                receive_create_lockup(deps, &channel, msg.sender, contract)
-            }
-            OsmoPacket::Lock(lock) => {
-                receive_lock_tokens(deps, &channel, lock, msg.sender, to_send)
-            }
-            OsmoPacket::Claim(claim) => {
-                nonpayable(&to_send)?;
-                receive_claim_tokens(deps, &channel, claim, msg.sender)
-            }
-            OsmoPacket::Unlock(unlock) => {
-                nonpayable(&to_send)?;
-                receive_unlock_tokens(deps, &channel, unlock, msg.sender)
-            }
         }
     } else {
         let send = send_amount(to_send, msg.receiver.clone());
@@ -426,192 +326,6 @@ fn swap_receive(
         .add_attribute("success", "true");
 
     Ok(res)
-}
-
-fn receive_join_pool(
-    join_pool: JoinPoolPacket,
-    sender: String,
-    token_in: Amount,
-    contract: String,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let tx = osmo_proto::osmosis::gamm::v1beta1::MsgJoinSwapExternAmountIn {
-        sender: contract,
-        token_in: Some(osmo_proto::cosmos::base::v1beta1::Coin {
-            denom: token_in.denom(),
-            amount: token_in.amount().to_string(),
-        }),
-        pool_id: join_pool.pool_id.u64(),
-        share_out_min_amount: join_pool.share_out_min_amount.to_string(),
-    };
-
-    let submsg = SubMsg::reply_always(tx.to_msg()?, JOIN_POOL_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_join_pool")
-        .add_attribute("sender", sender)
-        .add_attribute("denom", token_in.denom())
-        .add_attribute("amount", token_in.amount())
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn receive_exit_pool(
-    exit_pool: ExitPoolPacket,
-    sender: String,
-    token_in: Amount,
-    contract: String,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let pool_id = parse_pool_id(token_in.denom().as_str())?;
-    let tx = osmo_proto::osmosis::gamm::v1beta1::MsgExitSwapShareAmountIn {
-        sender: contract,
-        pool_id,
-        token_out_denom: exit_pool.token_out_denom,
-        share_in_amount: token_in.amount().to_string(),
-        token_out_min_amount: exit_pool.token_out_min_amount.to_string(),
-    };
-
-    let submsg = SubMsg::reply_always(tx.to_msg()?, EXIT_POOL_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_exit_pool")
-        .add_attribute("sender", sender)
-        .add_attribute("denom", token_in.denom())
-        .add_attribute("amount", token_in.amount())
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn receive_create_lockup(
-    deps: DepsMut,
-    channel: &str,
-    sender: String,
-    contract: String,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let lockup_key = (channel, sender.as_str());
-    if LOCKUP.has(deps.storage, lockup_key) {
-        return Err(ContractError::OnlyLockupByChannel {});
-    }
-
-    let config = CONFIG.load(deps.storage)?;
-
-    let admin = LockupInitMsg { admin: contract };
-    let init_msg: CosmosMsg = WasmMsg::Instantiate {
-        admin: None,
-        msg: to_binary(&admin)?,
-        code_id: config.lockup_id,
-        label: format!("Lockup {}", channel),
-        funds: vec![],
-    }
-    .into();
-
-    let submsg = SubMsg::reply_always(init_msg, LOCKUP_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_lockup_account")
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn receive_lock_tokens(
-    deps: DepsMut,
-    channel: &str,
-    lock: LockPacket,
-    sender: String,
-    token_in: Amount,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let lock_key = (channel, sender.as_str());
-    let lockup_contract = LOCKUP
-        .load(deps.storage, lock_key)
-        .map_err(|_| ContractError::LockupNotFound {})?;
-
-    let lockup_msg = LockupExecuteMsg::Lock {
-        duration: lock.duration,
-    };
-    let exec_msg = create_lockup_msg(
-        lockup_contract,
-        to_binary(&lockup_msg)?,
-        coins(token_in.amount().u128(), token_in.denom()),
-    );
-    let submsg = SubMsg::reply_always(exec_msg, LOCK_TOKEN_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_lock_tokens")
-        .add_attribute("sender", sender)
-        .add_attribute("denom", token_in.denom())
-        .add_attribute("amount", token_in.amount())
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn receive_claim_tokens(
-    deps: DepsMut,
-    channel: &str,
-    claim: ClaimPacket,
-    sender: String,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let lock_key = (channel, sender.as_str());
-    let lockup_contract = LOCKUP
-        .load(deps.storage, lock_key)
-        .map_err(|_| ContractError::LockupNotFound {})?;
-
-    let lockup_msg = LockupExecuteMsg::Claim { denom: claim.denom };
-    let exec_msg = create_lockup_msg(lockup_contract, to_binary(&lockup_msg)?, vec![]);
-    let submsg = SubMsg::reply_always(exec_msg, CLAIM_TOKEN_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_claim_tokens")
-        .add_attribute("sender", sender)
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn receive_unlock_tokens(
-    deps: DepsMut,
-    channel: &str,
-    unlock: UnlockPacket,
-    sender: String,
-) -> Result<IbcReceiveResponse, ContractError> {
-    let lock_key = (channel, sender.as_str());
-    let lockup_contract = LOCKUP
-        .load(deps.storage, lock_key)
-        .map_err(|_| ContractError::LockupNotFound {})?;
-
-    let lockup_msg = LockupExecuteMsg::Unlock { id: unlock.id };
-    let exec_msg = create_lockup_msg(lockup_contract, to_binary(&lockup_msg)?, vec![]);
-    let submsg = SubMsg::reply_on_error(exec_msg, UNLOCK_TOKEN_ID);
-
-    let res = IbcReceiveResponse::new()
-        .set_ack(ack_success())
-        .add_submessage(submsg)
-        .add_attribute("action", "receive_unlock")
-        .add_attribute("sender", sender)
-        .add_attribute("success", "true");
-
-    Ok(res)
-}
-
-fn create_lockup_msg(contract_addr: String, msg: Binary, funds: Vec<Coin>) -> CosmosMsg {
-    WasmMsg::Execute {
-        contract_addr,
-        msg,
-        funds,
-    }
-    .into()
 }
 
 fn nonpayable(amount: &Amount) -> Result<(), ContractError> {
@@ -740,26 +454,6 @@ mod test {
         );
         // Example message generated from the SDK
         let expected = r#"{"amount":"12345","denom":"ucosm","receiver":"wasm1fucynrfkrt684pm8jrt8la5h2csvs5cnldcgqc","sender":"cosmos1zedxv25ah8fksmg2lzrndrpkvsjqgk4zt5ff7n"}"#;
-
-        let encoded = String::from_utf8(to_vec(&packet).unwrap()).unwrap();
-        assert_eq!(expected, encoded.as_str());
-    }
-
-    #[test]
-    fn check_gamm_packet_json() {
-        let packet = Ics20Packet {
-            sender: "cosmos1zedxv25ah8fksmg2lzrndrpkvsjqgk4zt5ff7n".to_string(),
-            receiver: "wasm1fucynrfkrt684pm8jrt8la5h2csvs5cnldcgqc".to_string(),
-            amount: Uint128::new(12345),
-            denom: "ucosm".to_string(),
-            action: Some(OsmoPacket::JoinPool(JoinPoolPacket {
-                pool_id: Uint64::new(1),
-                share_out_min_amount: Uint128::new(1),
-            })),
-        };
-
-        // Example message generated from the SDK
-        let expected = r#"{"amount":"12345","denom":"ucosm","receiver":"wasm1fucynrfkrt684pm8jrt8la5h2csvs5cnldcgqc","sender":"cosmos1zedxv25ah8fksmg2lzrndrpkvsjqgk4zt5ff7n","action":{"join_pool":{"pool_id":"1","share_out_min_amount":"1"}}}"#;
 
         let encoded = String::from_utf8(to_vec(&packet).unwrap()).unwrap();
         assert_eq!(expected, encoded.as_str());
@@ -1016,324 +710,5 @@ mod test {
                 Amount::native(36601070, swap_denom)
             ]
         );
-    }
-
-    #[test]
-    fn receive_liquidty_actions() {
-        let send_channel = "channel-9";
-        let mut deps = setup(&["channel-1", "channel-7", send_channel]);
-        let denom = "uosmo";
-        let pool_denom = "gamm/pool/1";
-
-        let join_pool = OsmoPacket::JoinPool(JoinPoolPacket {
-            pool_id: 1u8.into(),
-            share_out_min_amount: 1u8.into(),
-        });
-
-        let exit_pool = OsmoPacket::ExitPool(ExitPoolPacket {
-            token_out_denom: denom.into(),
-            token_out_min_amount: 1u8.into(),
-        });
-
-        let join_packet_data = mock_ics20_data(876543210, denom, "", Some(join_pool));
-        let exit_packet_data =
-            mock_ics20_data(74196992097318119147, pool_denom, "", Some(exit_pool));
-
-        // prepare some mock packets
-        let join_packet = mock_ibc_rcv_packet(send_channel, &join_packet_data);
-        let exit_packet = mock_ibc_rcv_packet(send_channel, &exit_packet_data);
-
-        // we transfer some tokens
-        let msg = ExecuteMsg::Transfer(TransferMsg {
-            channel: send_channel.to_string(),
-            remote_address: "my-remote-address".to_string(),
-            timeout: None,
-        });
-        let info = mock_info("local-sender", &coins(987654321, denom));
-        execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // query channel state|_|
-        let state = query_channel(deps.as_ref(), send_channel.to_string()).unwrap();
-        assert_eq!(state.balances, vec![Amount::native(987654321, denom)]);
-        assert_eq!(state.total_sent, vec![Amount::native(987654321, denom)]);
-
-        // Join pool action
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), join_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-        check_gamm_submsg(res.messages[0].clone(), JOIN_POOL_ID, "join").unwrap();
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-
-        // Simulate join_pool reply
-        let r = mock_join_pool_response();
-        let reply_msg = mock_reply_msg(JOIN_POOL_ID, r.events, r.data);
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-        let gamm_ack: AmountResultAck = get_ack_result(&res.data.unwrap()).unwrap();
-        let gamm_ack_exp = AmountResultAck {
-            amount: Uint128::new(74196993097318119147u128),
-            denom: pool_denom.to_string(),
-        };
-        assert_eq!(gamm_ack, gamm_ack_exp);
-
-        // Exit pool action
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), exit_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-        check_gamm_submsg(res.messages[0].clone(), EXIT_POOL_ID, "exit").unwrap();
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-
-        // Simulate exit_pool reply
-        let r = mock_exit_pool_response();
-        let reply_msg = mock_reply_msg(EXIT_POOL_ID, r.events, r.data);
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-        let gamm_ack: AmountResultAck = get_ack_result(&res.data.unwrap()).unwrap();
-        let gamm_ack_exp = AmountResultAck {
-            amount: Uint128::new(9970022),
-            denom: denom.to_string(),
-        };
-        assert_eq!(gamm_ack, gamm_ack_exp);
-
-        // query channel state
-        let state = query_channel(deps.as_ref(), send_channel.to_string()).unwrap();
-        assert_eq!(
-            state.balances,
-            vec![
-                Amount::native(1000000000000, pool_denom),
-                Amount::native(121081133, denom)
-            ]
-        );
-        assert_eq!(
-            state.total_sent,
-            vec![
-                Amount::native(74196993097318119147, pool_denom),
-                Amount::native(997624343, denom)
-            ]
-        );
-    }
-
-    #[test]
-    fn receive_lockup_actions() {
-        let send_channel = "channel-9";
-        let mut deps = setup(&["channel-1", "channel-7", send_channel]);
-        let denom = "gamm/pool/1";
-        let lockup_contract = "lockup-addr".to_string();
-
-        let lockup = OsmoPacket::LockupAccount {};
-        let lock = OsmoPacket::Lock(LockPacket {
-            duration: 86400u64.into(),
-        });
-        let unlock = OsmoPacket::Unlock(UnlockPacket { id: 1u64.into() });
-
-        // prepare some mock packets
-        let lockup_packet = mock_rcv_action_packet(lockup, send_channel, 0, denom);
-        let lock_packet = mock_rcv_action_packet(lock, send_channel, 54321, denom);
-        let unlock_packet = mock_rcv_action_packet(unlock, send_channel, 0, denom);
-
-        // we transfer some tokens to register denom
-        let msg = ExecuteMsg::Transfer(TransferMsg {
-            channel: send_channel.to_string(),
-            remote_address: "my-remote-address".to_string(),
-            timeout: None,
-        });
-        let info = mock_info("local-sender", &coins(987654321, denom));
-        execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // Unlock invalid, no lockup account
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), unlock_packet.clone()).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        let no_lockup_account = Ics20Ack::Error(ContractError::LockupNotFound {}.to_string());
-        assert_eq!(ack, no_lockup_account);
-
-        // Create Lockup account action
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), lockup_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-
-        // Simulate reply lockup created (MsgInstantiateContractResponse {address: "lockup-addr"})
-        let init_ctr_response = Binary::from_base64("Cgtsb2NrdXAtYWRkcg==").unwrap();
-        let reply_msg = mock_reply_msg(LOCKUP_ID, vec![], Some(init_ctr_response));
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        let ack: LockupAck = get_ack_result(&res.data.unwrap()).unwrap();
-        assert_eq!(ack.contract, lockup_contract);
-
-        // Lock tokens
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), lock_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-        let lockup_msg = LockupExecuteMsg::Lock {
-            duration: 86400u64.into(),
-        };
-        assert_submsg_wasm(
-            res.messages[0].clone(),
-            LOCK_TOKEN_ID,
-            ReplyOn::Always,
-            &lockup_contract,
-            lockup_msg,
-            coins(54321u128, denom),
-        );
-
-        // Unlock tokens action.
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), unlock_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-        let lockup_msg = LockupExecuteMsg::Unlock { id: 1u64.into() };
-        assert_submsg_wasm(
-            res.messages[0].clone(),
-            UNLOCK_TOKEN_ID,
-            ReplyOn::Error,
-            &lockup_contract,
-            lockup_msg,
-            vec![],
-        );
-
-        // Simluate unlock reply error
-        let reply_msg = Reply {
-            id: UNLOCK_TOKEN_ID,
-            result: SubMsgResult::Err("No found lockup id".to_string()),
-        };
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-        let ack: Ics20Ack = from_binary(&res.data.unwrap()).unwrap();
-        assert!(matches!(ack, Ics20Ack::Error(_)));
-
-        // query channel state
-        let state = query_channel(deps.as_ref(), send_channel.to_string()).unwrap();
-        assert_eq!(state.balances, vec![Amount::native(987600000, denom)]);
-        assert_eq!(state.total_sent, vec![Amount::native(987654321, denom)]);
-    }
-
-    #[test]
-    fn receive_lock_claim_rewards() {
-        let send_channel = "channel-9";
-        let mut deps = setup(&["channel-1", "channel-7", send_channel]);
-        let denom = "uosmo";
-        let rewards = 45679u128;
-        let lockup_contract = "lockup-addr".to_string();
-
-        let lockup = OsmoPacket::LockupAccount {};
-        let claim = OsmoPacket::Claim(ClaimPacket {
-            denom: denom.to_string(),
-        });
-
-        // prepare some mock packets
-        let lockup_packet = mock_rcv_action_packet(lockup, send_channel, 0, denom);
-        let claim_packet = mock_rcv_action_packet(claim, send_channel, 0, denom);
-
-        // we transfer some tokens to register denom
-        let msg = ExecuteMsg::Transfer(TransferMsg {
-            channel: send_channel.to_string(),
-            remote_address: "my-remote-address".to_string(),
-            timeout: None,
-        });
-        let info = mock_info("local-sender", &coins(987654321, denom));
-        execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // verify channel balances
-        let state = query_channel(deps.as_ref(), send_channel.to_string()).unwrap();
-        assert_eq!(state.balances, vec![Amount::native(987654321, denom)]);
-        assert_eq!(state.total_sent, vec![Amount::native(987654321, denom)]);
-
-        // Create Lockup account action
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), lockup_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-
-        // Simulate reply lockup created (MsgInstantiateContractResponse {address: "lockup-addr"})
-        let init_ctr_response = Binary::from_base64("Cgtsb2NrdXAtYWRkcg==").unwrap();
-        let reply_msg = mock_reply_msg(LOCKUP_ID, vec![], Some(init_ctr_response));
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        let ack: LockupAck = get_ack_result(&res.data.unwrap()).unwrap();
-        assert_eq!(ack.contract, lockup_contract);
-
-        // Claim lockup rewards.
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), claim_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-        let ack: Ics20Ack = from_binary(&res.acknowledgement).unwrap();
-        assert!(matches!(ack, Ics20Ack::Result(_)));
-        let lockup_msg = LockupExecuteMsg::Claim {
-            denom: denom.to_string(),
-        };
-        assert_submsg_wasm(
-            res.messages[0].clone(),
-            CLAIM_TOKEN_ID,
-            ReplyOn::Always,
-            &lockup_contract,
-            lockup_msg,
-            vec![],
-        );
-
-        // Simulate reply rewards.
-        let rewards_data = json_to_reply_proto(&format!(
-            "{{\"amount\":\"{}\",\"denom\":\"{}\"}}",
-            rewards, denom
-        ));
-        let reply_msg = mock_reply_msg(CLAIM_TOKEN_ID, vec![], Some(rewards_data.into()));
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        let ack: AmountResultAck = get_ack_result(&res.data.unwrap()).unwrap();
-        assert_eq!(ack.amount, Uint128::new(rewards));
-        assert_eq!(ack.denom, denom);
-
-        // query channel state
-        let state = query_channel(deps.as_ref(), send_channel.to_string()).unwrap();
-        assert_eq!(state.balances, vec![Amount::native(987700000, denom)]);
-        assert_eq!(state.total_sent, vec![Amount::native(987700000, denom)]);
-    }
-
-    #[test]
-    fn reply_on_errors() {
-        let send_channel = "channel-9";
-        let mut deps = setup(&["channel-1", "channel-7", send_channel]);
-        let denom = "uosmo";
-        let error_msg = "Invalid operation".to_string();
-
-        let join_pool = OsmoPacket::JoinPool(JoinPoolPacket {
-            pool_id: 1u8.into(),
-            share_out_min_amount: 1u8.into(),
-        });
-        let reply_msg = Reply {
-            id: JOIN_POOL_ID,
-            result: SubMsgResult::Err(error_msg.clone()),
-        };
-
-        // Transfer initial tokens
-        let msg = ExecuteMsg::Transfer(TransferMsg {
-            channel: send_channel.to_string(),
-            remote_address: "my-remote-address".to_string(),
-            timeout: None,
-        });
-        let info = mock_info("local-sender", &coins(1000, denom));
-        execute(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // Join pool to simulate reply
-        let join_packet = mock_ibc_rcv_packet(
-            send_channel,
-            &mock_ics20_data(1000, denom, "", Some(join_pool)),
-        );
-        let res = ibc_packet_receive(deps.as_mut(), mock_env(), join_packet).unwrap();
-        assert_eq!(1, res.messages.len());
-
-        // Reply with error result
-        let res = reply(deps.as_mut(), mock_env(), reply_msg).unwrap();
-        let ack: Ics20Ack = from_binary(&res.data.unwrap()).unwrap();
-        assert!(matches!(ack, Ics20Ack::Error(err) if err == error_msg));
     }
 }
