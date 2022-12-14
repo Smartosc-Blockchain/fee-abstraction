@@ -191,44 +191,4 @@ mod test {
         assert_eq!(Uint128::new(36601070), token.amount);
         assert_eq!("uosmo", token.denom);
     }
-
-    #[test]
-    fn parse_join_pool_result() {
-        let events = mock_join_pool_events();
-        let msg = SubMsgResponse {
-            events,
-            data: Some(Binary::from_base64("ChQ3NDE5Njk5MzA5NzMxODExOTE0Nw==").unwrap()),
-        };
-        let result = parse_gamm_result::<MsgJoinSwapExternAmountInResponse>(
-            msg,
-            JOIN_POOL_EVENT,
-            JOIN_POOL_ATTR,
-        );
-
-        assert_eq!(true, result.is_ok());
-        let token = result.unwrap();
-
-        assert_eq!(Uint128::new(74196993097318119147), token.amount);
-        assert_eq!("gamm/pool/1", token.denom);
-    }
-
-    #[test]
-    fn parse_exit_pool_result() {
-        let events = mock_exit_pool_events();
-        let msg = SubMsgResponse {
-            events,
-            data: Some(Binary::from_base64("Cgc5OTcwMDIy").unwrap()),
-        };
-        let result = parse_gamm_result::<MsgExitSwapShareAmountInResponse>(
-            msg,
-            EXIT_POOL_EVENT,
-            EXIT_POOL_ATTR,
-        );
-
-        assert_eq!(true, result.is_ok());
-        let token = result.unwrap();
-
-        assert_eq!(Uint128::new(9970022), token.amount);
-        assert_eq!("uosmo", token.denom);
-    }
 }

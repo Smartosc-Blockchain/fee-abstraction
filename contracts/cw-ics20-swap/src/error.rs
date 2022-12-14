@@ -92,4 +92,3 @@ impl From<TryFromIntError> for ContractError {
         ContractError::AmountOverflow {}
     }
 }
-

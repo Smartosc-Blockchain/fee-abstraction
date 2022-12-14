@@ -1,26 +1,20 @@
 use cosmwasm_std::{
-    attr, entry_point, from_binary, to_binary, BankMsg, Binary, CosmosMsg, DepsMut,
-    Env, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg,
+    attr, entry_point, from_binary, to_binary, BankMsg, Binary, CosmosMsg, DepsMut, Env,
+    IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg,
     IbcEndpoint, IbcOrder, IbcPacket, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg,
     IbcReceiveResponse, Reply, Response, SubMsg, SubMsgResult,
 };
 
 use crate::amount::Amount;
 use crate::error::{ContractError, Never};
-use crate::ibc_msg::{
-    Ics20Ack, Ics20Packet, OsmoPacket, SwapPacket, Voucher,
-};
-use crate::parse::{
-    parse_gamm_result, GammResult, SWAP_ATTR, SWAP_EVENT,
-};
+use crate::ibc_msg::{Ics20Ack, Ics20Packet, OsmoPacket, SwapPacket, Voucher};
+use crate::parse::{parse_gamm_result, GammResult, SWAP_ATTR, SWAP_EVENT};
 use crate::state::{
     increase_channel_balance, reduce_channel_balance, restore_balance_reply, ChannelInfo,
     ReplyArgs, CHANNEL_INFO, REPLY_ARGS,
 };
-use cw_utils::{parse_execute_response_data};
-use osmo_proto::osmosis::gamm::v1beta1::{
-    MsgSwapExactAmountInResponse as SwapResponse,
-};
+use cw_utils::parse_execute_response_data;
+use osmo_proto::osmosis::gamm::v1beta1::MsgSwapExactAmountInResponse as SwapResponse;
 use osmo_proto::proto_ext::MessageExt;
 
 pub const ICS20_VERSION: &str = "ics20-1";
@@ -92,7 +86,6 @@ pub fn reply_gamm_result<M: GammResult + osmo_proto::Message + std::default::Def
         }
     }
 }
-
 
 pub fn reply_ack_from_data(deps: DepsMut, reply: Reply) -> Result<Response, ContractError> {
     match reply.result {
@@ -426,8 +419,8 @@ mod test {
     use crate::msg::{ExecuteMsg, TransferMsg};
     use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{
-        coins, to_vec, Event, IbcEndpoint, ReplyOn, StdError, StdResult, SubMsgResponse, Timestamp,
-        Uint128, Uint64,
+        coins, to_vec, Coin, Event, IbcEndpoint, ReplyOn, StdError, StdResult, SubMsgResponse,
+        Timestamp, Uint128, Uint64, WasmMsg,
     };
     use serde::de::DeserializeOwned;
     use serde::Serialize;
@@ -645,6 +638,8 @@ mod test {
         let mut deps = setup(&["channel-1", "channel-7", send_channel]);
         let denom = "uatom";
         let swap_denom = "uosmo";
+
+        println!("hello");
 
         let swap = OsmoPacket::Swap(SwapPacket {
             routes: vec![SwapAmountInRoute {

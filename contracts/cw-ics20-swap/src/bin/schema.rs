@@ -4,7 +4,8 @@ use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use cw_ics20_swap::msg::{
-    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg, TransferMsg,
+    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg,
+    TransferMsg,
 };
 use cw_ics20_swap::state::{ChannelInfo, ChannelState, Config, ReplyArgs};
 

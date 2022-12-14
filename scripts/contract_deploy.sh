@@ -18,55 +18,65 @@ if [ $arch == "arm64" ]; then
 fi
 INIT_MSG=( '' '{"default_timeout" : 60}' )
 
-for i in {0..1}; do
-    # store contract
-    RES=$(${BINARY[$i]} tx wasm store "${CONTRACT_DIR[$i]}" --from "$ACCOUNT" -y --output json --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" --gas 20000000 --fees 875000${DENOM[$i]} -y --output json --keyring-backend $KEYRING --home ${DIR[$i]})
-    echo $RES
+# loop contracts
+for j in {0..1}; do
+    echo "DEPLOYING ${CONTRACT_DIR[$j]}"
+    # loop chains
+    for i in {0..1}; do
+        # store contract
+        RES=$(${BINARY[$i]} tx wasm store "${CONTRACT_DIR[$j]}" --from "$ACCOUNT" -y --output json --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" --gas 20000000 --fees 875000${DENOM[$i]} -y --output json --keyring-backend $KEYRING --home ${DIR[$i]})
+        echo $RES
 
-    if [ "$(echo $RES | jq -r .raw_log)" != "[]" ]; then
-        # exit
-        echo "ERROR = $(echo $RES | jq .raw_log)"
-        exit 1
-    else
-        echo "STORE SUCCESS"
-    fi
+        if [ "$(echo $RES | jq -r .raw_log)" != "[]" ]; then
+            # exit
+            echo "ERROR = $(echo $RES | jq .raw_log)"
+            exit 1
+        else
+            echo "STORE SUCCESS"
+        fi
 
-    TXHASH=$(echo $RES | jq -r .txhash)
+        TXHASH=$(echo $RES | jq -r .txhash)
 
-    echo $TXHASH
+        echo $TXHASH
 
-    # sleep for chain to update
-    sleep "$SLEEP_TIME"
+        # sleep for chain to update
+        sleep "$SLEEP_TIME"
 
-    # query code id
-    RAW_LOG=$(${BINARY[$i]} query tx "$TXHASH" --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" -o json | jq -r .raw_log)
+        # query code id
+        RAW_LOG=$(${BINARY[$i]} query tx "$TXHASH" --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" -o json | jq -r .raw_log)
 
-    echo $RAW_LOG
+        echo $RAW_LOG
 
-    CODE_ID=$(echo $RAW_LOG | jq -r .[0].events[1].attributes[1].value)
+        CODE_ID=$(echo $RAW_LOG | jq -r .[0].events[1].attributes[1].value)
 
-    echo "CODE_ID on ${CHAINID[$i]} = $CODE_ID"
+        echo "CODE_ID on ${CHAINID[$i]} = $CODE_ID"
 
-    # instantiate contract
-    if [ "${INIT_MSG[$i]}" = "" ]; then
-        continue
-    fi
-    RES=$(${BINARY[$i]} tx wasm instantiate "$CODE_ID" "${INIT_MSG[$i]}" --from "$ACCOUNT" --no-admin --label "contract" -y --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" --gas 20000000 --fees 100000${DENOM[$i]} -o json --keyring-backend $KEYRING --home ${DIR[$i]})
+        # instantiate contract
+        if [ "${INIT_MSG[$j]}" = "" ]; then
+            continue
+        fi
 
-    if [ "$(echo $RES | jq -r .raw_log)" != "[]" ]; then
-        # exit
-        echo "ERROR = $(echo $RES | jq .raw_log)"
-        exit 1
-    else
-        echo "INSTANTIATE SUCCESS"
-    fi
+        RES=$(${BINARY[$i]} tx wasm instantiate "$CODE_ID" "${INIT_MSG[$j]}" --from "$ACCOUNT" --no-admin --label "contract" -y --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" --gas 20000000 --fees 100000${DENOM[$i]} -o json --keyring-backend $KEYRING --home ${DIR[$i]})
 
-    # sleep for chain to update
-    sleep "$SLEEP_TIME"
+        if [ "$(echo $RES | jq -r .raw_log)" != "[]" ]; then
+            # exit
+            echo "ERROR = $(echo $RES | jq .raw_log)"
+            exit 1
+        else
+            echo "INSTANTIATE SUCCESS"
+        fi
 
-    # query contract address
-    RAW_LOG=$(${BINARY[$i]} query tx "$(echo $RES | jq -r .txhash)" --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" -o json | jq -r .raw_log)
-    echo $RAW_LOG
-    CONTRACT_ADDRESS=$(echo $RAW_LOG | jq -r .[0].events[0].attributes[0].value)
-    echo "CONTRACT ADDRESS on ${CHAINID[$i]} = $CONTRACT_ADDRESS"
+        # sleep for chain to update
+        sleep "$SLEEP_TIME"
+
+        # query contract address
+        RAW_LOG=$(${BINARY[$i]} query tx "$(echo $RES | jq -r .txhash)" --chain-id "${CHAINID[$i]}" --node "${NODE[$i]}" -o json | jq -r .raw_log)
+        echo $RAW_LOG
+        CONTRACT_ADDRESS=$(echo $RAW_LOG | jq -r .[0].events[0].attributes[0].value)
+        echo "CONTRACT ADDRESS on ${CHAINID[$i]} = $CONTRACT_ADDRESS"
+    done
+    echo "DONE DEPLOYING ${CONTRACT_DIR[$j]}"
+    echo
+    echo
+    echo
 done

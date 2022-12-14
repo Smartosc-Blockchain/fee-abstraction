@@ -10,7 +10,8 @@ use crate::amount::Amount;
 use crate::error::ContractError;
 use crate::ibc_msg::Ics20Packet;
 use crate::msg::{
-    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg, TransferMsg,
+    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg,
+    TransferMsg,
 };
 use crate::state::{increase_channel_balance, Config, CHANNEL_INFO, CHANNEL_STATE, CONFIG};
 use cw_utils::one_coin;
