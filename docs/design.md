@@ -23,3 +23,5 @@ The following feature is needed:
 ## II. Cross Swap
 The following feature is needed:
 1. Swap handler: IBC component to make the swap on Osmosis
+
+Notice: May have to roll up several tx together

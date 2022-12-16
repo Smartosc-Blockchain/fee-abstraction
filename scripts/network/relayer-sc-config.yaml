@@ -33,7 +33,7 @@ chains:
       output-format: json
       sign-mode: direct
 paths:
-  juno-osmosis:
+  sc_juno-osmosis:
     src:
       chain-id: test-juno
     dst:

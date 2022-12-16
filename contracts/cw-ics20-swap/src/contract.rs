@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Env, IbcMsg, MessageInfo, Order, Response, StdResult,
+    to_binary, Addr, Binary, Deps, DepsMut, Env, IbcMsg, MessageInfo, Order, Response, StdResult
 };
 
 use cw2::set_contract_version;
@@ -158,10 +158,37 @@ mod test {
     use super::*;
     use crate::test_helpers::*;
 
-    use cosmwasm_std::testing::{mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_env, mock_info, mock_dependencies};
     use cosmwasm_std::{coin, coins, from_binary, CosmosMsg, IbcMsg, StdError, Uint128};
 
     use cw_utils::PaymentError;
+
+    #[test]
+    // ensure we can pass a message to the contract
+    fn proper_initialization() {
+        let mut deps = setup(&["channel-0", "channel-0"]);
+        let msg = InitMsg {
+            default_timeout: 100,
+        };
+        let info = mock_info("creator", &[]);
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        // execute a transfer
+        let msg = ExecuteMsg::Transfer(TransferMsg {
+            channel: "channel-0".to_string(),
+            remote_address: "osmo1xrj7hrjg86fdd9ct7j4dluusgd6geghh2rezyu".to_string(),
+            timeout: Option::from(100),
+        });
+
+        let res = execute(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("sender", &coins(100, "uatom")),
+            msg,
+        );
+        assert_eq!(false, res.is_err());
+    }
 
     #[test]
     fn setup_and_query() {

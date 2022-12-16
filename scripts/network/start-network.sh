@@ -29,7 +29,4 @@ bash init-chain.sh $ROOT/build/binary/osmosisd uosmo $ROOT/scripts/network/confi
 start_docker juno
 start_docker osmosis
 
-# start relayer
-bash setup-relayer.sh
-
 cd ../..

@@ -185,7 +185,6 @@ pub fn ibc_channel_close(
     match channel {
         IbcChannelCloseMsg::CloseConfirm { .. } => Ok(IbcBasicResponse::new()),
         IbcChannelCloseMsg::CloseInit { .. } => Err(ContractError::CannotClose {}),
-        _ => panic!(),
     }
 }
 
