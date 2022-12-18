@@ -1,3 +1,4 @@
+use cosmwasm_std::Uint64;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +16,7 @@ pub struct InitMsg {
 pub enum ExecuteMsg {
     /// This allows us to transfer *exactly one* native token
     Transfer(TransferMsg),
+    Swap(SwapMsg),
 }
 
 /// This is the message we accept via Receive
@@ -26,6 +28,16 @@ pub struct TransferMsg {
     /// Don't use HumanAddress as this will likely have a different Bech32 prefix than we use
     /// and cannot be validated locally
     pub remote_address: String,
+    /// How long the packet lives in seconds. If not specified, use default_timeout
+    pub timeout: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct SwapMsg {
+    /// The local channel to send the packets on
+    pub channel: String,
+    // pool_id
+    pub pool_id: Uint64,
     /// How long the packet lives in seconds. If not specified, use default_timeout
     pub timeout: Option<u64>,
 }

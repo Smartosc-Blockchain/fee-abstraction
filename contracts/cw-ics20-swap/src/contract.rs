@@ -8,10 +8,10 @@ use cw2::set_contract_version;
 
 use crate::amount::Amount;
 use crate::error::ContractError;
-use crate::ibc_msg::Ics20Packet;
+use crate::ibc_msg::{Ics20Packet, OsmoPacket, SwapPacket, SwapAmountInRoute};
 use crate::msg::{
     ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg,
-    TransferMsg,
+    TransferMsg, SwapMsg,
 };
 use crate::state::{increase_channel_balance, Config, CHANNEL_INFO, CHANNEL_STATE, CONFIG};
 use cw_utils::one_coin;
@@ -48,6 +48,10 @@ pub fn execute(
             let coin = one_coin(&info)?;
             execute_transfer(deps, env, msg, Amount::Native(coin), info.sender)
         }
+        ExecuteMsg::Swap(msg) => {
+            let coin = one_coin(&info)?;
+            execute_swap(deps, env, msg, Amount::Native(coin), info.sender)
+        }
     }
 }
 
@@ -80,6 +84,7 @@ pub fn execute_transfer(
         amount.denom(),
         sender.as_ref(),
         &msg.remote_address,
+        None
     );
 
     increase_channel_balance(deps.storage, &msg.channel, &amount.denom(), amount.amount())?;
@@ -95,6 +100,67 @@ pub fn execute_transfer(
     let res = Response::new()
         .add_message(msg)
         .add_attribute("action", "transfer")
+        .add_attribute("sender", &packet.sender)
+        .add_attribute("receiver", &packet.receiver)
+        .add_attribute("denom", &packet.denom)
+        .add_attribute("amount", &packet.amount.to_string());
+
+    Ok(res)
+}
+
+pub fn execute_swap (     
+    deps: DepsMut,
+    env: Env,
+    msg: SwapMsg,
+    amount: Amount,
+    sender: Addr,
+) -> Result<Response, ContractError> {
+    if amount.is_empty() {
+        return Err(ContractError::NoFunds {});
+    }
+    // ensure the requested channel is registered
+    if !CHANNEL_INFO.has(deps.storage, &msg.channel) {
+        return Err(ContractError::NoSuchChannel { id: msg.channel });
+    }
+
+    // delta from user is in seconds
+    let timeout_delta = match msg.timeout {
+        Some(t) => t,
+        None => CONFIG.load(deps.storage)?.default_timeout,
+    };
+    // timeout is in nanoseconds
+    let timeout = env.block.time.plus_seconds(timeout_delta);
+
+    let swap = OsmoPacket::Swap(SwapPacket {
+        routes: vec![SwapAmountInRoute {
+            pool_id: msg.pool_id,
+            token_out_denom: amount.denom().to_string(),
+        }],
+        token_out_min_amount: 1u8.into(),
+    });
+
+    // build ics20 packet
+    let packet = Ics20Packet::new(
+        amount.amount(),
+        amount.denom(),
+        sender.as_ref(),
+        "",
+        Some(swap)
+    );
+
+    increase_channel_balance(deps.storage, &msg.channel, &amount.denom(), amount.amount())?;
+
+    // prepare ibc message
+    let msg = IbcMsg::SendPacket {
+        channel_id: msg.channel,
+        data: to_binary(&packet)?,
+        timeout: timeout.into(),
+    };
+
+    // send response
+    let res = Response::new()
+        .add_message(msg)
+        .add_attribute("action", "swap")
         .add_attribute("sender", &packet.sender)
         .add_attribute("receiver", &packet.receiver)
         .add_attribute("denom", &packet.denom)
@@ -158,7 +224,7 @@ mod test {
     use super::*;
     use crate::test_helpers::*;
 
-    use cosmwasm_std::testing::{mock_env, mock_info, mock_dependencies};
+    use cosmwasm_std::testing::{mock_env, mock_info};
     use cosmwasm_std::{coin, coins, from_binary, CosmosMsg, IbcMsg, StdError, Uint128};
 
     use cw_utils::PaymentError;

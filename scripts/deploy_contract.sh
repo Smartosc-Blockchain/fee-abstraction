@@ -87,9 +87,6 @@ for j in $(seq 0 $((${#CONTRACT_DIR[@]} - 1))); do
 
     # check if contract_port_list 0 and 1 is both not empty
     if [ "${CONTRACT_PORT_LIST[0]}" != "" ] && [ "${CONTRACT_PORT_LIST[1]}" != "" ]; then
-        # mock port for testing
-        CONTRACT_PORT_LIST[1]="transfer"
-
         echo "setting up relayer"
         bash scripts/network/setup-sc-relayer.sh ${CONTRACT_PORT_LIST[0]} ${CONTRACT_PORT_LIST[1]}
     fi

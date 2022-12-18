@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source $ROOT/scripts/network/vars.sh
+source $ROOT/scripts/vars.sh
 
 BINARY=$1
 DENOM=$2

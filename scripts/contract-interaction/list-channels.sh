@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source scripts/contract-interaction/vars.sh
+source scripts/vars.sh
 
 CONTRACT_ADDRESS=$1
 ACCOUNT="test"

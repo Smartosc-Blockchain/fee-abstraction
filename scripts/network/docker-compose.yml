@@ -18,6 +18,13 @@ services:
       - "26357:26657"
       - "1287:1317"
       - "9060:9090"
+  relayer:
+    container_name: relayer
+    image: fee-abstraction:relayer
+    volumes:
+      - ./config/relayer-config:/home/relayer/.relayer
+    restart: always
+    command: [ "bash", "start.sh", "juno-osmosis" ]
   sc-relayer:
     container_name: sc-relayer
     image: fee-abstraction:relayer

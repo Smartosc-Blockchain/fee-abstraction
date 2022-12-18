@@ -33,14 +33,6 @@ chains:
       output-format: json
       sign-mode: direct
 paths:
-  sc_juno-osmosis:
-    src:
-      chain-id: test-juno
-    dst:
-      chain-id: test-osmo
-    src-channel-filter:
-      rule: ""
-      channel-list: []
   juno-osmosis:
     src:
       chain-id: test-juno
