@@ -6,7 +6,7 @@ cd scripts/network
 start_docker() {
     name=$1
 
-    docker compose up -d $name
+    docker-compose up -d $name
     docker-compose logs -f $name | sed -r -u "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" > logs/$name.log 2>&1 &
 
     printf "Waiting for $name to start..."
