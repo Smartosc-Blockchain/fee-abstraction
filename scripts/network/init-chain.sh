@@ -14,6 +14,13 @@ RELAYER_KEY="rly"
 rm -rf $DIR
 mkdir -p $DIR
 
+# check if toml-cli is installed
+if ! [ -x "$(command -v toml)" ]; then
+  echo 'Error: toml-cli is not installed.' >&2
+  echo 'Please install it by running: pip install toml-cli' >&2
+  exit 1
+fi
+
 # Function updates the config based on a jq argument as a string
 update_test_genesis () {
     # EX: update_test_genesis '.consensus_params["block"]["max_gas"]="100000000"'
