@@ -1,6 +1,6 @@
 [package]
 name        = "osmo-proto"
-authors     = ["Jammyaa <eyescryptoinsights@gmail.com>"]
+authors     = ["Jammyaa <chinhnd@smartosc.com>"]
 description = "Osmosis proto helpers"
 keywords    = ["osmosis", "protobuf", "cosmwasm"]
 version     = { workspace = true }

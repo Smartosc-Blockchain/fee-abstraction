@@ -21,7 +21,13 @@ pub struct Ics20Packet {
 }
 
 impl Ics20Packet {
-    pub fn new<T: Into<String>>(amount: Uint128, denom: T, sender: &str, receiver: &str, action: Option<OsmoPacket>) -> Self {
+    pub fn new<T: Into<String>>(
+        amount: Uint128,
+        denom: T,
+        sender: &str,
+        receiver: &str,
+        action: Option<OsmoPacket>,
+    ) -> Self {
         Ics20Packet {
             denom: denom.into(),
             amount,

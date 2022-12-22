@@ -1,17 +1,17 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Env, IbcMsg, MessageInfo, Order, Response, StdResult
+    to_binary, Addr, Binary, Deps, DepsMut, Env, IbcMsg, MessageInfo, Order, Response, StdResult,
 };
 
 use cw2::set_contract_version;
 
 use crate::amount::Amount;
 use crate::error::ContractError;
-use crate::ibc_msg::{Ics20Packet, OsmoPacket, SwapPacket, SwapAmountInRoute};
+use crate::ibc_msg::{Ics20Packet, OsmoPacket, SwapAmountInRoute, SwapPacket};
 use crate::msg::{
-    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg,
-    TransferMsg, SwapMsg,
+    ChannelResponse, ConfigResponse, ExecuteMsg, InitMsg, ListChannelsResponse, QueryMsg, SwapMsg,
+    TransferMsg,
 };
 use crate::state::{increase_channel_balance, Config, CHANNEL_INFO, CHANNEL_STATE, CONFIG};
 use cw_utils::one_coin;
@@ -84,7 +84,7 @@ pub fn execute_transfer(
         amount.denom(),
         sender.as_ref(),
         &msg.remote_address,
-        None
+        None,
     );
 
     increase_channel_balance(deps.storage, &msg.channel, &amount.denom(), amount.amount())?;
@@ -108,7 +108,7 @@ pub fn execute_transfer(
     Ok(res)
 }
 
-pub fn execute_swap (     
+pub fn execute_swap(
     deps: DepsMut,
     env: Env,
     msg: SwapMsg,
@@ -145,7 +145,7 @@ pub fn execute_swap (
         amount.denom(),
         sender.as_ref(),
         "",
-        Some(swap)
+        Some(swap),
     );
 
     increase_channel_balance(deps.storage, &msg.channel, &amount.denom(), amount.amount())?;
