@@ -1,0 +1,14 @@
+syntax = "proto3";
+package fachain.fachain;
+
+import "gogoproto/gogo.proto";
+import "fachain/params.proto";
+// this line is used by starport scaffolding # genesis/proto/import
+
+option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/fachain/types";
+
+// GenesisState defines the fachain module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  // this line is used by starport scaffolding # genesis/proto/state
+}
