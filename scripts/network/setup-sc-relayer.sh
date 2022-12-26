@@ -3,13 +3,15 @@
 SRC_ADDRESS=$1
 DST_ADDRESS=$2
 
-# ROOT=$(pwd)
+# check if ROOT empty
+if [ -z "$ROOT" ]; then
+    source scripts/vars.sh
+fi
 
 docker container stop sc-relayer &>/dev/null
 docker container rm sc-relayer &>/dev/null
 rm -rf $ROOT/scripts/network/config/relayer-sc-config $ROOT/scripts/network/logs/relayer-sc.log
 
-source $ROOT/scripts/vars.sh
 relayer_config=$ROOT/scripts/network/config/relayer-sc-config/config
 relayer_logs=$ROOT/scripts/network/logs/relayer-sc.log
 relayer_exec="docker-compose -f $ROOT/scripts/network/docker-compose.yml run --rm sc-relayer"
