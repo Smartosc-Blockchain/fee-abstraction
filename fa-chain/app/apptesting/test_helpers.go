@@ -1,7 +1,6 @@
 package apptesting
 
 import (
-	"fmt"
 	"strings"
 
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
@@ -130,7 +129,6 @@ func (s *AppTestHelper) CreateTransferChannel(hostChainID string) {
 
 	// Create clients, connections, and a transfer channel
 	s.TransferPath = NewTransferPath(s.Chain, s.HostChain)
-	fmt.Printf("TransferPath: %v", s.TransferPath)
 	s.Coordinator.Setup(s.TransferPath)
 
 	// Replace stride and host apps with those from TestingApp

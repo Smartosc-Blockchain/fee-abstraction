@@ -10,7 +10,7 @@ import (
 	// "github.com/cosmos/cosmos-sdk/client/flags"
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module

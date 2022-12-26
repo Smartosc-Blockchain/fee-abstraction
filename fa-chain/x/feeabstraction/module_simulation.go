@@ -4,8 +4,8 @@ import (
 	"math/rand"
 
 	"github.com/Smartosc-Blockchain/fa-chain/testutil/sample"
-	fachainsimulation "github.com/Smartosc-Blockchain/fa-chain/x/fachain/simulation"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	fachainsimulation "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/simulation"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	simappparams "github.com/cosmos/cosmos-sdk/simapp/params"
 	sdk "github.com/cosmos/cosmos-sdk/types"

@@ -119,7 +119,7 @@ func (s *KeeperTestSuite) TestMsgSubmitQueryResponse_FindAndInvokeCallback_Wrong
 	s.App.InterchainqueryKeeper.SetQuery(s.Ctx, tc.query)
 
 	// rather than testing by executing the callback in its entirety,
-	//   check by invoking it without a registered host zone and catching the appropriate error
+	// check by invoking it without a registered host zone and catching the appropriate error
 	err := s.App.InterchainqueryKeeper.InvokeCallback(s.Ctx, &tc.validMsg, tc.query)
 	s.Require().ErrorContains(err, "no registered zone for queried chain ID", "callback was invoked")
 }

@@ -1,8 +1,8 @@
 package fachain
 
 import (
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/keeper"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/keeper"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 

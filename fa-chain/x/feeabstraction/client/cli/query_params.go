@@ -3,7 +3,7 @@ package cli
 import (
 	"context"
 
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"

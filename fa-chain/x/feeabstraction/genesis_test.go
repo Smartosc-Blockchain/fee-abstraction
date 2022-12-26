@@ -5,8 +5,8 @@ import (
 
 	keepertest "github.com/Smartosc-Blockchain/fa-chain/testutil/keeper"
 	"github.com/Smartosc-Blockchain/fa-chain/testutil/nullify"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	fachain "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/stretchr/testify/require"
 )
 

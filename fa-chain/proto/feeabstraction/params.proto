@@ -1,9 +1,9 @@
 syntax = "proto3";
-package fachain.fachain;
+package fachain.feeabstraction;
 
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/fachain/types";
+option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types";
 
 // Params defines the parameters for the module.
 message Params {

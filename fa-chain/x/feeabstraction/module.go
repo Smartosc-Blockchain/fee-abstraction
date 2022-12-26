@@ -12,9 +12,9 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/client/cli"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/keeper"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/client/cli"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/keeper"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"

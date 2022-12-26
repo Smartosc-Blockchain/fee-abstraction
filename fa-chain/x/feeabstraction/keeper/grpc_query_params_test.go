@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	testkeeper "github.com/Smartosc-Blockchain/fa-chain/testutil/keeper"
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )

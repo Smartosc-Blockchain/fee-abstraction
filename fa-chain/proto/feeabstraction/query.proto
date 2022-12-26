@@ -1,13 +1,13 @@
 syntax = "proto3";
-package fachain.fachain;
+package fachain.feeabstraction;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
-import "fachain/params.proto";
+import "feeabstraction/params.proto";
 // this line is used by starport scaffolding # 1
 
-option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/fachain/types";
+option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types";
 
 // Query defines the gRPC querier service.
 service Query {

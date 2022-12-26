@@ -108,9 +108,9 @@ import (
 
 	"github.com/Smartosc-Blockchain/fa-chain/docs"
 
-	fachainmodule "github.com/Smartosc-Blockchain/fa-chain/x/fachain"
-	fachainmodulekeeper "github.com/Smartosc-Blockchain/fa-chain/x/fachain/keeper"
-	fachainmoduletypes "github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	fachainmodule "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction"
+	fachainmodulekeeper "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/keeper"
+	fachainmoduletypes "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/Smartosc-Blockchain/fa-chain/x/interchainquery"
 	interchainquerykeeper "github.com/Smartosc-Blockchain/fa-chain/x/interchainquery/keeper"
 	interchainquerytypes "github.com/Smartosc-Blockchain/fa-chain/x/interchainquery/types"
@@ -422,17 +422,20 @@ func New(
 	// Stack one contains
 	// - IBC
 	// - ICA
-	// - icacallbacks
-	// - stakeibc
 	// - base app
 	var icamiddlewareStack ibcporttypes.IBCModule
 	icamiddlewareStack = icacontroller.NewIBCModule(app.ICAControllerKeeper, icamiddlewareStack)
 	icaHostIBCModule := icahost.NewIBCModule(app.ICAHostKeeper)
 
+	// Create Transfer Stack
+	var transferStack ibcporttypes.IBCModule
+	transferStack = transfer.NewIBCModule(app.TransferKeeper)
+
 	// Create static IBC router, add transfer route, then set and seal it
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
 	ibcRouter.
+		AddRoute(ibctransfertypes.ModuleName, transferStack).
 		AddRoute(icacontrollertypes.SubModuleName, icamiddlewareStack).
 		AddRoute(icahosttypes.SubModuleName, icaHostIBCModule)
 	// Note, authentication module packets are routed to the top level of the middleware stack

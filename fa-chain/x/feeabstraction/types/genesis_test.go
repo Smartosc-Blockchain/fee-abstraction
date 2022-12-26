@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/Smartosc-Blockchain/fa-chain/x/fachain/types"
+	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/stretchr/testify/require"
 )
 
