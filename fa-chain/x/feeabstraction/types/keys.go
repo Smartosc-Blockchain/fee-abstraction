@@ -15,8 +15,18 @@ const (
 
 	// MemStoreKey defines the in-memory store key
 	MemStoreKey = "mem_fachain"
+
+	TWAP_STORE_QUERY_WITH_PROOF = "/osmosis.twap.v1beta1.Query/ArithmeticTwapToNow"
+)
+
+var (
+	KeyPrefixDenom = []byte{0x01}
 )
 
 func KeyPrefix(p string) []byte {
 	return []byte(p)
+}
+
+func GetKeyDenomPrefix(denom string) []byte {
+	return append(KeyPrefixDenom, []byte(denom)...)
 }

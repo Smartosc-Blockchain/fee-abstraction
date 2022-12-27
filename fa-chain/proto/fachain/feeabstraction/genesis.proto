@@ -2,8 +2,7 @@ syntax = "proto3";
 package fachain.feeabstraction;
 
 import "gogoproto/gogo.proto";
-import "feeabstraction/params.proto";
-// this line is used by starport scaffolding # genesis/proto/import
+import "fachain/feeabstraction/params.proto";
 
 option go_package = "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types";
 

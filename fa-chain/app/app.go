@@ -15,7 +15,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -23,7 +22,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
@@ -108,9 +106,9 @@ import (
 
 	"github.com/Smartosc-Blockchain/fa-chain/docs"
 
-	fachainmodule "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction"
-	fachainmodulekeeper "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/keeper"
-	fachainmoduletypes "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
+	feeabstraction "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction"
+	feeabstractionkeeper "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/keeper"
+	feeabstractiontypes "github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	"github.com/Smartosc-Blockchain/fa-chain/x/interchainquery"
 	interchainquerykeeper "github.com/Smartosc-Blockchain/fa-chain/x/interchainquery/keeper"
 	interchainquerytypes "github.com/Smartosc-Blockchain/fa-chain/x/interchainquery/types"
@@ -168,7 +166,7 @@ var (
 		transfer.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		monitoringp.AppModuleBasic{},
-		fachainmodule.AppModuleBasic{},
+		feeabstraction.AppModuleBasic{},
 		interchainquery.AppModuleBasic{},
 	)
 
@@ -189,7 +187,6 @@ var (
 var (
 	_ cosmoscmd.App           = (*App)(nil)
 	_ servertypes.Application = (*App)(nil)
-	_ simapp.App              = (*App)(nil)
 	_ ibctesting.TestingApp   = (*App)(nil)
 )
 
@@ -245,15 +242,12 @@ type App struct {
 	ScopedICAControllerKeeper capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper       capabilitykeeper.ScopedKeeper
 
-	FachainKeeper         fachainmodulekeeper.Keeper
+	FAKeeper              feeabstractionkeeper.Keeper
 	InterchainqueryKeeper interchainquerykeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// mm is the module manager
 	mm *module.Manager
-
-	// sm is the simulation manager
-	sm *module.SimulationManager
 }
 
 // New returns a reference to an initialized blockchain app
@@ -283,7 +277,7 @@ func New(
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		fachainmoduletypes.StoreKey, interchainquerytypes.StoreKey, icacontrollertypes.StoreKey, icahosttypes.StoreKey,
+		feeabstractiontypes.StoreKey, interchainquerytypes.StoreKey, icacontrollertypes.StoreKey, icahosttypes.StoreKey,
 		// this line is used by starport scaffolding # stargate/app/storeKey
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -401,13 +395,20 @@ func New(
 	app.InterchainqueryKeeper = interchainquerykeeper.NewKeeper(appCodec, keys[interchainquerytypes.StoreKey], app.IBCKeeper)
 	interchainQueryModule := interchainquery.NewAppModule(appCodec, app.InterchainqueryKeeper)
 
-	app.FachainKeeper = *fachainmodulekeeper.NewKeeper(
+	app.FAKeeper = *feeabstractionkeeper.NewKeeper(
 		appCodec,
-		keys[fachainmoduletypes.StoreKey],
-		keys[fachainmoduletypes.MemStoreKey],
-		app.GetSubspace(fachainmoduletypes.ModuleName),
+		keys[feeabstractiontypes.StoreKey],
+		keys[feeabstractiontypes.MemStoreKey],
+		app.GetSubspace(feeabstractiontypes.ModuleName),
+		app.InterchainqueryKeeper,
 	)
-	fachainModule := fachainmodule.NewAppModule(appCodec, app.FachainKeeper, app.AccountKeeper, app.BankKeeper)
+	faModule := feeabstraction.NewAppModule(appCodec, app.FAKeeper, app.AccountKeeper, app.BankKeeper)
+
+	// Register ICQ callbacks
+	err := app.InterchainqueryKeeper.SetCallbackHandler(feeabstractiontypes.ModuleName, app.FAKeeper.ICQCallbackHandler())
+	if err != nil {
+		return nil
+	}
 
 	// create IBC middleware stacks by combining middleware with base application
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
@@ -473,7 +474,7 @@ func New(
 		ibc.NewAppModule(app.IBCKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		transferModule,
-		fachainModule,
+		faModule,
 		interchainQueryModule,
 		icaModule,
 		// this line is used by starport scaffolding # stargate/app/appModule
@@ -503,7 +504,7 @@ func New(
 		genutiltypes.ModuleName,
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
-		fachainmoduletypes.ModuleName,
+		feeabstractiontypes.ModuleName,
 		interchainquerytypes.ModuleName,
 	)
 
@@ -527,7 +528,7 @@ func New(
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
-		fachainmoduletypes.ModuleName,
+		feeabstractiontypes.ModuleName,
 		interchainquerytypes.ModuleName,
 	)
 
@@ -556,34 +557,13 @@ func New(
 		upgradetypes.ModuleName,
 		ibctransfertypes.ModuleName,
 		feegrant.ModuleName,
-		fachainmoduletypes.ModuleName,
+		feeabstractiontypes.ModuleName,
 		interchainquerytypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
 	app.mm.RegisterServices(module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter()))
-
-	// create the simulation manager and define the order of the modules for deterministic simulations
-	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
-		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		params.NewAppModule(app.ParamsKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
-		ibc.NewAppModule(app.IBCKeeper),
-		transferModule,
-		fachainModule,
-		// this line is used by starport scaffolding # stargate/app/appModule
-	)
-	app.sm.RegisterStoreDecoders()
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -796,16 +776,11 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibchost.ModuleName)
-	paramsKeeper.Subspace(fachainmoduletypes.ModuleName)
+	paramsKeeper.Subspace(feeabstractiontypes.ModuleName)
 	paramsKeeper.Subspace(interchainquerytypes.ModuleName)
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	// this line is used by starport scaffolding # stargate/app/paramSubspace
 
 	return paramsKeeper
-}
-
-// SimulationManager implements the SimulationApp interface
-func (app *App) SimulationManager() *module.SimulationManager {
-	return app.sm
 }
