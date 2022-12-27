@@ -34,10 +34,6 @@ osmosis-std-derive  = "0.13.2"
 codegen-units = 1
 incremental = false
 
-[profile.release.package.cw-fee-abstraction]
-codegen-units = 1
-incremental = false
-
 [profile.release.package.cw-ics20-swap]
 codegen-units = 1
 incremental = false

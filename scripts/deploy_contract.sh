@@ -7,6 +7,7 @@ KEYRING="test"
 source scripts/vars.sh
 
 CONTRACT_DIR=( "artifacts/cw_fee_abstraction.wasm" "artifacts/swaprouter.wasm" "artifacts/crosschain_swaps.wasm" )
+CONTRACT_NAME=( "cw-fee-abstraction" "swaprouter" "crosschain_swaps" )
 CONTRACT_CHAIN=( 0 1 1 )
 CONTRACT_ADDRESS=( '' '' '' )
 arch=$(uname -m)
@@ -82,7 +83,7 @@ for j in $(seq 0 $((${#CONTRACT_DIR[@]} - 1))); do
     echo $RAW_LOG
     ADDRESS=$(echo $RAW_LOG | jq -r .[0].events[0].attributes[0].value)
     CONTRACT_ADDRESS[$j]=$ADDRESS
-    echo "CONTRACT ADDRESS on ${CHAINID[$i]} with address = $ADDRESS" >> scripts/contract-interaction/logs/contract-addresses.txt
+    echo "CONTRACT ADDRESS of ${CONTRACT_NAME[$j]} on ${CHAINID[$i]} with address = $ADDRESS" >> scripts/contract-interaction/logs/contract-addresses.txt
 
     echo "DONE DEPLOYING ${CONTRACT_DIR[$j]}"
     echo
