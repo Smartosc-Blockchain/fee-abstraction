@@ -6,8 +6,13 @@ KEYRING="test"
 
 source scripts/vars.sh
 
+# check if SWAPROUTER_CONTRACT is empty env var
+if [ $SWAPROUTER_CONTRACT = "" ]; then
+    echo "run scripts/deploy_contract.sh first"
+    exit 1
+fi
+
 echo ${BINARY[1]}
-CONTRACT="osmo14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sq2r9g9"
 ADD_ROUTE="{
     \"set_route\":
         {
@@ -16,7 +21,7 @@ ADD_ROUTE="{
             \"pool_route\":[{\"pool_id\":\"1\",\"token_out_denom\":\"uosmo\"}]
         }
     }"
-RES=$(${BINARY[1]} tx wasm execute "$CONTRACT" "${ADD_ROUTE}" --from "$ACCOUNT" -y --chain-id "${CHAINID[1]}" --node "${NODE[1]}" --gas 400000 --keyring-backend $KEYRING --home ${DIR[$i]} --fees 0${DENOM[1]} -o json)
+RES=$(${BINARY[1]} tx wasm execute "$SWAPROUTER_CONTRACT" "${ADD_ROUTE}" --from "$ACCOUNT" -y --chain-id "${CHAINID[1]}" --node "${NODE[1]}" --gas 400000 --keyring-backend $KEYRING --home ${DIR[$i]} --fees 0${DENOM[1]} -o json)
 echo $RES
 
 TXHASH=$(echo $RES | jq -r .txhash)
@@ -38,5 +43,5 @@ GET_ROUTE="{
             \"output_denom\":\"uosmo\"
         }
     }"
-RES=$(${BINARY[1]} query wasm contract-state smart "$CONTRACT" "$GET_ROUTE" --node "${NODE[1]}" --output json)
+RES=$(${BINARY[1]} query wasm contract-state smart "$SWAPROUTER_CONTRACT" "$GET_ROUTE" --node "${NODE[1]}" --output json)
 echo $RES

@@ -18,3 +18,7 @@ export DIR=( "$ROOT/scripts/network/config/juno" "$ROOT/scripts/network/config/o
 export DENOM=( "ujuno" "uosmo" )
 export NODE=( "http://localhost:26657" "http://localhost:26357" )
 export CHAINID=( "test-juno" "test-osmo" )
+
+# export cross-chain contract addresses
+export SWAPROUTER_CONTRACT=osmo1eyfccmjm6732k7wp4p6gdjwhxjwsvje44j0hfx8nkgrm8fs7vqfsn92ayh
+export CROSSCHAIN_CONTRACT=osmo1pvrwmjuusn9wh34j7y520g8gumuy9xtl3gvprlljfdpwju3x7ucsxrqwu2

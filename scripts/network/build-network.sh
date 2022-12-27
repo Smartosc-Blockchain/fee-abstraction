@@ -46,12 +46,12 @@ build_docker() {
    return $docker_build_succeeded
 }
 
-install_binary juno https://github.com/CosmosContracts/juno.git 5875239f4e2d20646024a2c7f4a383fa45081e81
+install_binary juno https://github.com/Smartosc-Blockchain/juno.git 67dbd631074aab748d8f7b8e080d11ddc406d1cc
 
 install_binary osmosis https://github.com/osmosis-labs/osmosis.git v13.0.0-rc4
 
 install_binary relayer https://github.com/cosmos/relayer.git 2c03c44f1e380a62b953a2f95efbd3be760c2b70
 
-build_docker juno 5875239f4e2d20646024a2c7f4a383fa45081e81
+build_docker juno 67dbd631074aab748d8f7b8e080d11ddc406d1cc
 build_docker osmosis v13.0.0-rc4
 build_docker relayer 2c03c44f1e380a62b953a2f95efbd3be760c2b70

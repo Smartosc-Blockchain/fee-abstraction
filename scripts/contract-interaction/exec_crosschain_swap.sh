@@ -1,12 +1,16 @@
 #!/bin/bash
 
 ACCOUNT="test"
-SLEEP_TIME="15"
+SLEEP_TIME="20"
 KEYRING="test"
 
 source scripts/vars.sh
 
-CROSSCHAIN_CONTRACT="osmo1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqvlx82r"
+# check if CROSSCHAIN_CONTRACT is empty env var
+if [ $CROSSCHAIN_CONTRACT = "" ]; then
+    echo "run scripts/deploy_contract.sh first"
+    exit 1
+fi
 
 HOST_ACCOUNT=$(${BINARY[0]} keys show $ACCOUNT -a --keyring-backend $KEYRING --home ${DIR[0]})
 DESTINATION_ACCOUNT=$(${BINARY[1]} keys show $ACCOUNT -a --keyring-backend $KEYRING --home ${DIR[1]})
@@ -22,9 +26,9 @@ echo $BALANCE
 
 echo "Transfer..."
 # transfer some ujuno to osmosis to swap after
-TRANSFER=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1000000ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id test-juno -y --node ${NODE[0]})
+TRANSFER=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1000000ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id "${CHAINID[0]}" -y --node ${NODE[0]})
 
-sleep 15
+sleep $SLEEP_TIME
 
 echo "Check balance after IBC transfer and before crosschain swap"
 
@@ -37,9 +41,28 @@ echo $BALANCE
 
 echo "Crosschain swap..."
 # exec crosschain swap 
-RES=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id test-juno -y --node ${NODE[0]} --memo '{"wasm":{"contract": "osmo1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqvlx82r", "msg": {"osmosis_swap": {"input_coin":{"denom":"ibc/04F5F501207C3626A2C14BFEF654D51C2E0B8F7CA578AB8ED272A66FE4E48097", "amount":"100000"}, "output_denom":"uosmo", "slippage":{"max_slippage_percentage":"20"}, "receiver":"juno1xrj7hrjg86fdd9ct7j4dluusgd6geghh52ff4j"}}}}')
+MEMO=$(jq --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
+    "wasm":{
+        "contract": $CROSSCHAIN_CONTRACT, 
+        "msg": {
+            "osmosis_swap": {
+                "input_coin": {
+                    "denom":"ibc/04F5F501207C3626A2C14BFEF654D51C2E0B8F7CA578AB8ED272A66FE4E48097",
+                    "amount":"100000"
+                }, 
+                "output_denom":"uosmo", 
+                "slippage":{
+                    "max_slippage_percentage":"20"
+                }, 
+                "receiver":"juno1xrj7hrjg86fdd9ct7j4dluusgd6geghh52ff4j"
+            }
+        }
+    }
+}')
+RES=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id "${CHAINID[0]}" -y --node ${NODE[0]} --memo "$MEMO" -o json | jq .raw_log)
+echo $RES
 
-sleep 15
+sleep $SLEEP_TIME
 
 echo "Check balance after crosschain swap"
 # check juno balance after swap

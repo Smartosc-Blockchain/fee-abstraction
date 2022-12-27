@@ -90,3 +90,7 @@ for j in $(seq 0 $((${#CONTRACT_DIR[@]} - 1))); do
     echo
     echo
 done
+
+# export cross-chain contract addresses by writing to vars.sh
+sed -i "" "s|export SWAPROUTER_CONTRACT=.*|export SWAPROUTER_CONTRACT=${CONTRACT_ADDRESS[1]}|g" scripts/vars.sh
+sed -i "" "s|export CROSSCHAIN_CONTRACT=.*|export CROSSCHAIN_CONTRACT=${CONTRACT_ADDRESS[2]}|g" scripts/vars.sh
