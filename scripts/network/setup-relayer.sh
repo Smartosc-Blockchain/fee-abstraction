@@ -26,7 +26,7 @@ $relayer_exec rly keys restore osmosis rly-osmo "$MNEMONIC_3" >> $relayer_logs 2
 printf "Waiting for relayer to start..."
 $relayer_exec rly transact link juno-osmosis >> $relayer_logs 2>&1
 
-if "${PIPESTATUS[0]}" = "1"; then
+if [[ "${PIPESTATUS[0]}" = "1" ]]; then
     echo "Failed to link chains"
     exit 1
 fi
