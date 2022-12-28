@@ -41,9 +41,9 @@ echo $BALANCE
 
 echo "Crosschain swap..."
 # exec crosschain swap 
-MEMO=$(jq -c --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
+MEMO=$(jq -c --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" --arg HOST_ACCOUNT "$HOST_ACCOUNT" '{
     "wasm":{
-        "contract": $CROSSCHAIN_CONTRACT, 
+        "contract":$CROSSCHAIN_CONTRACT, 
         "msg": {
             "osmosis_swap": {
                 "input_coin": {
@@ -54,7 +54,7 @@ MEMO=$(jq -c --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
                 "slippage":{
                     "max_slippage_percentage":"20"
                 }, 
-                "receiver":"juno1xrj7hrjg86fdd9ct7j4dluusgd6geghh52ff4j"
+                "receiver":$HOST_ACCOUNT
             }
         }
     }
