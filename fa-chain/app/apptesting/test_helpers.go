@@ -21,10 +21,11 @@ import (
 	tmtypes "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/Smartosc-Blockchain/fa-chain/app"
+	appparams "github.com/Smartosc-Blockchain/fa-chain/app/params"
 )
 
 var (
-	ChainID = "STRIDE"
+	ChainID = "FA"
 
 	TestIcaVersion = string(icatypes.ModuleCdc.MustMarshalJSON(&icatypes.Metadata{
 		Version:                icatypes.Version,
@@ -55,7 +56,7 @@ type AppTestHelper struct {
 
 // AppTestHelper Constructor
 func (s *AppTestHelper) Setup() {
-	s.App = app.InitStrideTestApp(true)
+	s.App = app.InitTestApp(true)
 	s.Ctx = s.App.BaseApp.NewContext(false, tmtypes.Header{Height: 1, ChainID: ChainID})
 	s.QueryHelper = &baseapp.QueryServiceTestHelper{
 		GRPCQueryRouter: s.App.GRPCQueryRouter(),
@@ -98,7 +99,7 @@ func CreateRandomAccounts(numAccts int) []sdk.AccAddress {
 	return testAddrs
 }
 
-// Initializes a ibctesting coordinator to keep track of Stride and a host chain's state
+// Initializes a ibctesting coordinator to keep track of this chain and a host chain's state
 func (s *AppTestHelper) SetupIBCChains(hostChainID string) {
 	s.Coordinator = ibctesting.NewCoordinator(s.T(), 0)
 
@@ -118,7 +119,7 @@ func (s *AppTestHelper) SetupIBCChains(hostChainID string) {
 	s.IbcEnabled = true
 }
 
-// Creates clients, connections, and a transfer channel between stride and a host chain
+// Creates clients, connections, and a transfer channel between this chain and a host chain
 func (s *AppTestHelper) CreateTransferChannel(hostChainID string) {
 	// If we have yet to create the host chain, do that here
 	if !s.IbcEnabled {
@@ -136,9 +137,9 @@ func (s *AppTestHelper) CreateTransferChannel(hostChainID string) {
 	s.HostApp = s.HostChain.GetSimApp()
 	s.Ctx = s.Chain.GetContext()
 	// Finally confirm the channel was setup properly
-	s.Require().Equal(ibctesting.FirstClientID, s.TransferPath.EndpointA.ClientID, "stride clientID")
-	s.Require().Equal(ibctesting.FirstConnectionID, s.TransferPath.EndpointA.ConnectionID, "stride connectionID")
-	s.Require().Equal(ibctesting.FirstChannelID, s.TransferPath.EndpointA.ChannelID, "stride transfer channelID")
+	s.Require().Equal(ibctesting.FirstClientID, s.TransferPath.EndpointA.ClientID, "chain clientID")
+	s.Require().Equal(ibctesting.FirstConnectionID, s.TransferPath.EndpointA.ConnectionID, "chain connectionID")
+	s.Require().Equal(ibctesting.FirstChannelID, s.TransferPath.EndpointA.ChannelID, "chain transfer channelID")
 
 	s.Require().Equal(ibctesting.FirstClientID, s.TransferPath.EndpointB.ClientID, "host clientID")
 	s.Require().Equal(ibctesting.FirstConnectionID, s.TransferPath.EndpointB.ConnectionID, "host connectionID")
@@ -327,5 +328,5 @@ func GenerateTestAddrs() (string, string) {
 
 // Modifies sdk config to have stride address prefixes (used for non-keeper tests)
 func SetupConfig() {
-	app.SetupConfig()
+	appparams.SetAddressPrefixes()
 }

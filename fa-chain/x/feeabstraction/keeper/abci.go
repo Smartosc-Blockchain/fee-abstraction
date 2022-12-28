@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -10,9 +11,22 @@ import (
 	twapquery "github.com/osmosis-labs/osmosis/v13/x/twap/client/queryproto"
 )
 
+func (k Keeper) BeginBlocker(ctx sdk.Context) {
+	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyBeginBlocker)
+
+	// get pools information from Osmosis
+	// make request for pools
+	connections := k.icqKeeper.IBCKeeper.ConnectionKeeper.GetAllConnections(ctx)
+	fmt.Printf("connections = %v\n", connections)
+	//connections[0].Counterparty.GetPrefix()
+}
+
 // EndBlocker of feeabstraction module
 func (k Keeper) EndBlocker(ctx sdk.Context) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+
+	// get pools information from Osmosis
+	// make request for pools
 
 	// make request for twap
 	req := twapquery.ArithmeticTwapToNowRequest{

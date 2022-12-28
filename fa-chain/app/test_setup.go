@@ -4,35 +4,22 @@ import (
 	"encoding/json"
 
 	"github.com/cosmos/cosmos-sdk/simapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
-	cmdcfg "github.com/Smartosc-Blockchain/fa-chain/cmd/fachaind/config"
-	"github.com/ignite/cli/ignite/pkg/cosmoscmd"
+	appparams "github.com/Smartosc-Blockchain/fa-chain/app/params"
 )
 
-const Bech32Prefix = "stride"
-
 func init() {
-	SetupConfig()
-}
-
-func SetupConfig() {
-	config := sdk.GetConfig()
-	valoper := sdk.PrefixValidator + sdk.PrefixOperator
-	valoperpub := sdk.PrefixValidator + sdk.PrefixOperator + sdk.PrefixPublic
-	config.SetBech32PrefixForAccount(Bech32Prefix, Bech32Prefix+sdk.PrefixPublic)
-	config.SetBech32PrefixForValidator(Bech32Prefix+valoper, Bech32Prefix+valoperpub)
-	cmdcfg.SetAddressPrefixes(config)
+	appparams.SetAddressPrefixes()
 }
 
 // Initializes a new StrideApp without IBC functionality
-func InitStrideTestApp(initChain bool) *App {
+func InitTestApp(initChain bool) *App {
 	db := dbm.NewMemDB()
-	codec := cosmoscmd.MakeEncodingConfig(ModuleBasics)
+	codec := appparams.MakeEncodingConfig()
 	app := New(
 		log.NewNopLogger(),
 		db,
@@ -60,11 +47,11 @@ func InitStrideTestApp(initChain bool) *App {
 		)
 	}
 
-	return app.(*App)
+	return app
 }
 
 // Initializes a new Stride App casted as a TestingApp for IBC support
 func InitStrideIBCTestingApp() (ibctesting.TestingApp, map[string]json.RawMessage) {
-	app := InitStrideTestApp(false)
+	app := InitTestApp(false)
 	return ibctesting.TestingApp(app), NewDefaultGenesisState(app.appCodec)
 }
