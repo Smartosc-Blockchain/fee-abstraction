@@ -41,7 +41,7 @@ echo $BALANCE
 
 echo "Crosschain swap..."
 # exec crosschain swap 
-MEMO=$(jq --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
+MEMO=$(jq -c --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
     "wasm":{
         "contract": $CROSSCHAIN_CONTRACT, 
         "msg": {
@@ -59,7 +59,7 @@ MEMO=$(jq --null-input --arg CROSSCHAIN_CONTRACT "$CROSSCHAIN_CONTRACT" '{
         }
     }
 }')
-RES=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id "${CHAINID[0]}" -y --node ${NODE[0]} --memo "$MEMO" -o json | jq .raw_log)
+RES=$(${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $DESTINATION_ACCOUNT 1ujuno --from $ACCOUNT --keyring-backend $KEYRING --home ${DIR[0]} --chain-id "${CHAINID[0]}" -y --node ${NODE[0]} --memo $MEMO -o json)
 echo $RES
 
 sleep $SLEEP_TIME

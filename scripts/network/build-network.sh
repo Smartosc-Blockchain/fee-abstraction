@@ -48,10 +48,10 @@ build_docker() {
 
 install_binary juno https://github.com/Smartosc-Blockchain/juno.git 67dbd631074aab748d8f7b8e080d11ddc406d1cc
 
-install_binary osmosis https://github.com/osmosis-labs/osmosis.git v13.0.0-rc4
+install_binary osmosis https://github.com/osmosis-labs/osmosis.git v13.1.2
 
 install_binary relayer https://github.com/cosmos/relayer.git andrew/client_icq
 
 build_docker juno 67dbd631074aab748d8f7b8e080d11ddc406d1cc
-build_docker osmosis v13.0.0-rc4
+build_docker osmosis v13.1.2
 build_docker relayer andrew/client_icq
