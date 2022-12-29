@@ -398,6 +398,7 @@ func New(
 		keys[feeabstractiontypes.MemStoreKey],
 		app.GetSubspace(feeabstractiontypes.ModuleName),
 		app.InterchainqueryKeeper,
+		app.TransferKeeper,
 	)
 	faModule := feeabstraction.NewAppModule(appCodec, app.FAKeeper, app.AccountKeeper, app.BankKeeper)
 

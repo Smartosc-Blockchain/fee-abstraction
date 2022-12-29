@@ -5,11 +5,13 @@ import (
 
 	icqtypes "github.com/Smartosc-Blockchain/fa-chain/x/interchainquery/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	gammtypes "github.com/osmosis-labs/osmosis/v13/x/gamm/types"
 	twapquery "github.com/osmosis-labs/osmosis/v13/x/twap/client/queryproto"
 )
 
 const (
 	ICQCallbackID_FeeRate = "fee_rate"
+	ICQCallbackID_Pool    = "pool"
 )
 
 // ICQCallbacks wrapper struct for stakeibc keeper
@@ -42,7 +44,8 @@ func (c ICQCallbacks) AddICQCallback(id string, fn interface{}) icqtypes.QueryCa
 
 func (c ICQCallbacks) RegisterICQCallbacks() icqtypes.QueryCallbacks {
 	return c.
-		AddICQCallback(ICQCallbackID_FeeRate, ICQCallback(FeeRateCallBack))
+		AddICQCallback(ICQCallbackID_FeeRate, ICQCallback(FeeRateCallBack)).
+		AddICQCallback(ICQCallbackID_Pool, ICQCallback(PoolCallBack))
 }
 
 func FeeRateCallBack(k Keeper, ctx sdk.Context, args []byte, query icqtypes.Query) error {
@@ -60,9 +63,36 @@ func FeeRateCallBack(k Keeper, ctx sdk.Context, args []byte, query icqtypes.Quer
 		return err
 	}
 
-	if err := k.SetFeeRate(ctx, twapReq.BaseAsset, twapRes.ArithmeticTwap); err != nil {
+	denomJuno := k.GetDenomTrack(ctx, twapReq.BaseAsset)
+
+	if err := k.SetFeeRate(ctx, denomJuno, twapRes.ArithmeticTwap); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func PoolCallBack(k Keeper, ctx sdk.Context, args []byte, query icqtypes.Query) error {
+	k.Logger(ctx).Info(fmt.Sprintf("PoolCallBack executing, QueryId: %vs, Host: %s, QueryType: %s, Connection: %s",
+		query.Id, query.ChainId, query.QueryType, query.ConnectionId))
+
+	poolRes := &gammtypes.QueryPoolsWithFilterResponse{}
+	if err := poolRes.Unmarshal(args); err != nil {
+		return err
+	}
+
+	poolReq := &gammtypes.QueryPoolsWithFilterRequest{}
+	if err := poolReq.Unmarshal(query.Request); err != nil {
+		return err
+	}
+
+	var pool gammtypes.PoolI
+	err := k.cdc.UnpackAny(poolRes.Pools[0], &pool)
+	if err != nil {
+		panic(err)
+	}
+
+	k.SetPool(ctx, poolReq.MinLiquidity.GetDenomByIndex(0), pool.GetId())
 
 	return nil
 }

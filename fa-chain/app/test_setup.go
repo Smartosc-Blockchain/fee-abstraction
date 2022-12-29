@@ -19,7 +19,7 @@ func init() {
 // Initializes a new StrideApp without IBC functionality
 func InitTestApp(initChain bool) *App {
 	db := dbm.NewMemDB()
-	codec := appparams.MakeEncodingConfig()
+	codec := MakeEncodingConfig()
 	app := New(
 		log.NewNopLogger(),
 		db,
