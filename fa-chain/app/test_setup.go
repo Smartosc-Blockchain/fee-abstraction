@@ -55,3 +55,5 @@ func InitStrideIBCTestingApp() (ibctesting.TestingApp, map[string]json.RawMessag
 	app := InitTestApp(false)
 	return ibctesting.TestingApp(app), NewDefaultGenesisState(app.appCodec)
 }
+
+// initializes a new Osmosis App casted as a TestingApp for IBC support

@@ -22,7 +22,7 @@ func (suite *KeeperTestSuite) SetupNewQuery() NewQueryTestCase {
 	// callbackId is a string that is used to identify the callback you'd like to execute upon receiving the result of the query
 	callbackId := "validator"
 	// chain Id of the target chain you're querying
-	chainId := "GAIA"
+	chainId := "OSMO"
 	// connectionId of the target chain you're querying
 	connectionId := "connection-0"
 	// QueryType is a string that is used to identify the store you'd like to query, as well as whether you'd like a proof returned alongside the result

@@ -4,5 +4,12 @@ package keeper_test
 func (s KeeperTestSuite) TestIdentifyChain() {
 	s.SetupTest()
 
+	// Send token
+	err := s.MockIBCTransfer()
+	s.Suite.Require().NoError(err)
+
+	// run begin blocker
 	s.App.FAKeeper.BeginBlocker(s.Ctx)
+
+	// identify correct denom
 }

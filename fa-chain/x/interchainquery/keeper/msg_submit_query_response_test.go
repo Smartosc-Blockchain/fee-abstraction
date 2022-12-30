@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	HostChainId = "GAIA"
+	HostChainId = "OSMO"
 )
 
 type MsgSubmitQueryResponseTestCase struct {
