@@ -7,6 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	appparams "github.com/Smartosc-Blockchain/fa-chain/app/params"
 	"github.com/Smartosc-Blockchain/fa-chain/x/feeabstraction/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	gammtypes "github.com/osmosis-labs/osmosis/v13/x/gamm/types"
@@ -36,7 +37,7 @@ func (k Keeper) BeginBlocker(ctx sdk.Context) {
 	// make request for pools
 	k.IterateDenomTrack(ctx, func(denomOsmo, _ string) bool {
 		req := gammtypes.QueryPoolsWithFilterRequest{
-			MinLiquidity: sdk.NewCoins(sdk.NewCoin(denomOsmo, sdk.ZeroInt()), sdk.NewCoin(GetJunoIBCDenom().IBCDenom(), sdk.ZeroInt())),
+			MinLiquidity: sdk.NewCoins(sdk.NewCoin(denomOsmo, sdk.ZeroInt()), sdk.NewCoin(GetIBCDenom(osmo_juno_channel_id, appparams.DefaultBondDenom).IBCDenom(), sdk.ZeroInt())),
 			PoolType:     "Balancer",
 		}
 

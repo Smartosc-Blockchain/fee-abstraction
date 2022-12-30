@@ -104,7 +104,8 @@ func (k Keeper) IterateDenomTrack(ctx sdk.Context, f func(denomOsmo string, deno
 
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		if f(string(iterator.Key()), string(iterator.Value())) {
+		// key is appended with store prefix, this will remove initial prefix of store and return true value of denomOsmo
+		if f(string(iterator.Key()[1:]), string(iterator.Value())) {
 			break
 		}
 	}

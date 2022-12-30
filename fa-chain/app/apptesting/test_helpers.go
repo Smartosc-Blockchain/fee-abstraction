@@ -14,7 +14,6 @@ import (
 	transfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v3/testing"
-	"github.com/cosmos/ibc-go/v3/testing/simapp"
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 	"github.com/tendermint/tendermint/crypto/ed25519"
@@ -22,6 +21,8 @@ import (
 
 	"github.com/Smartosc-Blockchain/fa-chain/app"
 	appparams "github.com/Smartosc-Blockchain/fa-chain/app/params"
+	osmoapp "github.com/osmosis-labs/osmosis/v13/app"
+	osmoparams "github.com/osmosis-labs/osmosis/v13/app/params"
 )
 
 var (
@@ -40,7 +41,7 @@ type AppTestHelper struct {
 	suite.Suite
 
 	App     *app.App
-	HostApp *simapp.SimApp
+	HostApp *osmoapp.OsmosisApp
 
 	IbcEnabled   bool
 	Coordinator  *ibctesting.Coordinator
@@ -52,6 +53,7 @@ type AppTestHelper struct {
 	TestAccs     []sdk.AccAddress
 	IcaAddresses map[string]string
 	Ctx          sdk.Context
+	HostCtx      sdk.Context
 }
 
 // AppTestHelper Constructor
@@ -65,7 +67,6 @@ func (s *AppTestHelper) Setup() {
 	s.TestAccs = CreateRandomAccounts(3)
 	s.IbcEnabled = false
 	s.IcaAddresses = make(map[string]string)
-
 }
 
 // Mints coins directly to a module account
@@ -75,11 +76,20 @@ func (s *AppTestHelper) FundModuleAccount(moduleName string, amount sdk.Coin) {
 }
 
 // Mints and sends coins to a user account
-func (s *AppTestHelper) FundAccount(acc sdk.AccAddress, amount sdk.Coin) {
+func (s *AppTestHelper) FundAppAccount(acc sdk.AccAddress, amount sdk.Coin) {
 	amountCoins := sdk.NewCoins(amount)
 	err := s.App.BankKeeper.MintCoins(s.Ctx, minttypes.ModuleName, amountCoins)
 	s.Require().NoError(err)
 	err = s.App.BankKeeper.SendCoinsFromModuleToAccount(s.Ctx, minttypes.ModuleName, acc, amountCoins)
+	s.Require().NoError(err)
+}
+
+// Mints and sends coins to a user account
+func (s *AppTestHelper) FundHostAppAccount(acc sdk.AccAddress, amount sdk.Coin) {
+	amountCoins := sdk.NewCoins(amount)
+	err := s.HostApp.BankKeeper.MintCoins(s.HostCtx, minttypes.ModuleName, amountCoins)
+	s.Require().NoError(err)
+	err = s.HostApp.BankKeeper.SendCoinsFromModuleToAccount(s.HostCtx, minttypes.ModuleName, acc, amountCoins)
 	s.Require().NoError(err)
 }
 
@@ -108,7 +118,7 @@ func (s *AppTestHelper) SetupIBCChains(hostChainID string) {
 	s.Chain = ibctesting.NewTestChain(s.T(), s.Coordinator, ChainID)
 
 	// Initialize a host testing app using SimApp -> TestingApp
-	ibctesting.DefaultTestingAppInit = ibctesting.SetupTestingApp
+	ibctesting.DefaultTestingAppInit = app.InitOsmosisIBCTestingApp
 	s.HostChain = ibctesting.NewTestChain(s.T(), s.Coordinator, hostChainID)
 
 	// Update coordinator
@@ -134,8 +144,14 @@ func (s *AppTestHelper) CreateTransferChannel(hostChainID string) {
 
 	// Replace stride and host apps with those from TestingApp
 	s.App = s.Chain.App.(*app.App)
-	s.HostApp = s.HostChain.GetSimApp()
+	s.HostApp = s.HostChain.App.(*osmoapp.OsmosisApp)
 	s.Ctx = s.Chain.GetContext()
+	s.HostCtx = s.HostChain.GetContext()
+
+	// fund accounts on both chain
+	s.FundAppAccount(s.Chain.SenderAccount.GetAddress(), sdk.NewCoin(appparams.DefaultBondDenom, sdk.NewIntFromUint64(1000000000000)))
+	s.FundHostAppAccount(s.HostChain.SenderAccount.GetAddress(), sdk.NewCoin(osmoparams.DefaultBondDenom, sdk.NewIntFromUint64(1000000000000)))
+
 	// Finally confirm the channel was setup properly
 	s.Require().Equal(ibctesting.FirstClientID, s.TransferPath.EndpointA.ClientID, "chain clientID")
 	s.Require().Equal(ibctesting.FirstConnectionID, s.TransferPath.EndpointA.ConnectionID, "chain connectionID")
@@ -177,6 +193,7 @@ func (s *AppTestHelper) CreateICAChannel(owner string) string {
 	s.Require().NoError(err, "ChanOpenConfirm error")
 
 	s.Ctx = s.Chain.GetContext()
+	s.HostCtx = s.HostChain.GetContext()
 	// Confirm the ICA channel was created properly
 	portID := icaPath.EndpointA.ChannelConfig.PortID
 	channelID := icaPath.EndpointA.ChannelID
