@@ -36,6 +36,11 @@ func (k Keeper) BeginBlocker(ctx sdk.Context) {
 	// get pools information from Osmosis
 	// make request for pools
 	k.IterateDenomTrack(ctx, func(denomOsmo, _ string) bool {
+		// check if it has pool
+		if k.HasPool(ctx, denomOsmo) {
+			return true
+		}
+
 		req := gammtypes.QueryPoolsWithFilterRequest{
 			MinLiquidity: sdk.NewCoins(sdk.NewCoin(denomOsmo, sdk.ZeroInt()), sdk.NewCoin(GetIBCDenom(osmo_juno_channel_id, appparams.DefaultBondDenom).IBCDenom(), sdk.ZeroInt())),
 			PoolType:     "Balancer",

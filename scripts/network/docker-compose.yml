@@ -1,14 +1,23 @@
 version: '3'
 services:
-  juno:
-    container_name: juno
-    image: fee-abstraction:juno
+  # juno:
+  #   container_name: juno
+  #   image: fee-abstraction:juno
+  #   volumes:
+  #     - ./config/juno:/home/juno/.juno
+  #   ports:
+  #     - "26657:26657"
+  #     - "1317:1317"
+  #     - "9090:9090"
+  fachain:
+    container_name: fachain
+    image: fee-abstraction:fachain
     volumes:
-      - ./config/juno:/home/juno/.juno
+      - ./config/fachain:/home/fachain/.fachain
     ports:
-      - "26657:26657"
-      - "1317:1317"
-      - "9090:9090"
+      - "26457:26657"
+      - "1217:1317"
+      - "9080:9090"
   osmosis:
     container_name: osmosis
     image: fee-abstraction:osmosis
@@ -16,7 +25,7 @@ services:
       - ./config/osmosis:/home/osmosis/.osmosisd
     ports:
       - "26357:26657"
-      - "1287:1317"
+      - "1117:1317"
       - "9060:9090"
   relayer:
     container_name: relayer
@@ -24,11 +33,11 @@ services:
     volumes:
       - ./config/relayer-config:/home/relayer/.relayer
     restart: always
-    command: [ "bash", "start.sh", "juno-osmosis" ]
-  sc-relayer:
-    container_name: sc-relayer
-    image: fee-abstraction:relayer
-    volumes:
-      - ./config/relayer-sc-config:/home/relayer/.relayer
-    restart: always
-    command: [ "bash", "start.sh", "sc_juno-osmosis" ]
+    command: [ "bash", "start.sh", "fachain-osmosis" ]
+  # sc-relayer:
+  #   container_name: sc-relayer
+  #   image: fee-abstraction:relayer
+  #   volumes:
+  #     - ./config/relayer-sc-config:/home/relayer/.relayer
+  #   restart: always
+  #   command: [ "bash", "start.sh", "sc_juno-osmosis" ]

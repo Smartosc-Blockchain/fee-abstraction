@@ -85,11 +85,7 @@ func (k Keeper) SetDenomTrack(ctx sdk.Context, denomOsmo, denomJuno string) {
 
 func (k Keeper) HasDenomTrack(ctx sdk.Context, denomOsmo string) bool {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.StoreDenomTrack)
-	if store.Has([]byte(denomOsmo)) {
-		return true
-	}
-
-	return false
+	return store.Has([]byte(denomOsmo))
 }
 
 func (k Keeper) GetDenomTrack(ctx sdk.Context, denomOsmo string) string {
@@ -119,13 +115,19 @@ func (k Keeper) SetPool(ctx sdk.Context, denomOsmo string, poolId uint64) {
 	store.Set([]byte(denomOsmo), data)
 }
 
+func (k Keeper) HasPool(ctx sdk.Context, denomOsmo string) bool {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.StorePool)
+	return store.Has([]byte(denomOsmo))
+}
+
 func (k Keeper) IteratePool(ctx sdk.Context, f func(denomOsmo string, poolId uint64) bool) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.StorePool)
 
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		if f(string(iterator.Key()), uint64(binary.LittleEndian.Uint64(iterator.Value()))) {
+		// key is appended with store prefix, this will remove initial prefix of store and return true value of denomOsmo
+		if f(string(iterator.Key()[1:]), uint64(binary.LittleEndian.Uint64(iterator.Value()))) {
 			break
 		}
 	}

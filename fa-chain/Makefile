@@ -1,15 +1,28 @@
 #!/usr/bin/make -f
 
-BUILDDIR ?= $(CURDIR)/build
-build=s
-cache=false
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT := $(shell git log -1 --format='%H')
+
+# don't override user values
+ifeq (,$(VERSION))
+  VERSION := $(shell git describe --tags)
+  # if VERSION is empty, then populate it with branch's name and raw commit hash
+  ifeq (,$(VERSION))
+    VERSION := $(BRANCH)-$(COMMIT)
+  endif
+endif
+
+PACKAGES_SIMTEST=$(shell go list ./... | grep '/simulation')
+LEDGER_ENABLED ?= true
+SDK_PACK := $(shell go list -m github.com/cosmos/cosmos-sdk | sed  's/ /\@/g')
+TM_VERSION := $(shell go list -m github.com/tendermint/tendermint | sed 's:.* ::') # grab everything after the space in "github.com/tendermint/tendermint v0.34.7"
 DOCKER := $(shell which docker)
-DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf:1.7.0
+BUILDDIR ?= $(CURDIR)/build
+
+export GO111MODULE = on
 
 # process build tags
 
-LEDGER_ENABLED ?= true
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
   ifeq ($(OS),Windows_NT)
@@ -34,9 +47,9 @@ ifeq ($(LEDGER_ENABLED),true)
   endif
 endif
 
-build_tags += $(BUILD_TAGS)
-build_tags := $(strip $(build_tags))
-
+ifeq (cleveldb,$(findstring cleveldb,$(FACHAIN_BUILD_OPTIONS)))
+  build_tags += gcc cleveldb
+endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -51,66 +64,47 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=fachain \
 		  -X github.com/cosmos/cosmos-sdk/version.AppName=fachaind \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
+		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)" \
+			-X github.com/tendermint/tendermint/version.TMCoreSemVer=$(TM_VERSION)
 
+ifeq (cleveldb,$(findstring cleveldb,$(FACHAIN_BUILD_OPTIONS)))
+  ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
+endif
 ifeq ($(LINK_STATICALLY),true)
-	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
+  ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
+endif
+ifeq (,$(findstring nostrip,$(FACHAIN_BUILD_OPTIONS)))
+  ldflags += -w -s
 endif
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
+# check for nostrip option
+ifeq (,$(findstring nostrip,$(FACHAIN_BUILD_OPTIONS)))
+  BUILD_FLAGS += -trimpath
+endif
+ 
+#$(info $$BUILD_FLAGS is [$(BUILD_FLAGS)])
 
-.PHONY: build
 
-all: lint check-dependencies build-local
-
-###############################################################################
-###                            Build & Clean                                ###
-###############################################################################
-
-build:
-	mkdir -p $(BUILDDIR)/
-	go build -mod=readonly -ldflags '$(ldflags)' -trimpath -o $(BUILDDIR) ./...;
+all: install
 
 install: go.sum
-		go install $(BUILD_FLAGS) ./cmd/fachaind
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/fachaind
 
-clean: 
-	rm -rf $(BUILDDIR)/*
-
-###############################################################################
-###                                Tests                                    ###
-###############################################################################
-
-test-unit:
-	@go test -mod=readonly ./x/$(module)/...
-
-test-cover:
-	@go test -mod=readonly -race -coverprofile=coverage.out -covermode=atomic ./x/$(module)/...
+build:
+	go build $(BUILD_FLAGS) -o bin/fachaind ./cmd/fachaind
 
 ###############################################################################
-###                                Protobuf                                 ###
+###                                  Proto                                  ###
 ###############################################################################
 
-containerProtoVer=v0.7
-containerProtoImage=tendermintdev/sdk-proto-gen:$(containerProtoVer)
-containerProtoGen=cosmos-sdk-proto-gen-$(containerProtoVer)
-containerProtoGenSwagger=cosmos-sdk-proto-gen-swagger-$(containerProtoVer)
-containerProtoFmt=cosmos-sdk-proto-fmt-$(containerProtoVer)
-
-proto-all: proto-format proto-lint proto-gen
+protoVer=v0.7
+protoImageName=tendermintdev/sdk-proto-gen:$(protoVer)
+containerProtoGen=fachain-proto-gen-$(protoVer)
 
 proto-gen:
 	@echo "Generating Protobuf files"
-	$(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace tendermintdev/sdk-proto-gen sh ./scripts/protocgen.sh
-
-proto-format:
-	@echo "Formatting Protobuf files"
-	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoFmt}$$"; then docker start -a $(containerProtoFmt); else docker run --name $(containerProtoFmt) -v $(CURDIR):/workspace --workdir /workspace tendermintdev/docker-build-proto \
-		find ./proto -name "*.proto" -exec clang-format -i {} \; ; fi
-
-proto-lint:
-	@$(DOCKER_BUF) lint --error-format=json
-
-.PHONY: proto-all proto-gen proto-format proto-lint
+	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoGen}$$"; then docker start -a $(containerProtoGen); else docker run --name $(containerProtoGen) -v $(CURDIR):/workspace --workdir /workspace $(protoImageName) \
+		sh ./scripts/protocgen.sh; fi
