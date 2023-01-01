@@ -4,9 +4,13 @@ WORKDIR /opt/
 
 RUN set -eux; apk add --no-cache ca-certificates build-base; apk add git linux-headers
 
-ARG COMMIT_HASH=nil
+ARG COMMIT_HASH=main
 
-COPY fa-chain /opt/fa-chain
+# RUN git clone https://github.com/nghuyenthevinh2000/fa-chain.git \
+#     && cd fa-chain \
+#     && git checkout ${COMMIT_HASH}
+
+COPY build/fa-chain /opt/fa-chain
 
 WORKDIR /opt/fa-chain
 

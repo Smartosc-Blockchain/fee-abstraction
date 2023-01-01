@@ -31,10 +31,13 @@ start_docker osmosis
 # start relayer
 bash setup-relayer.sh
 
+# ibc-transfer osmo to fachain
+${BINARY[1]} tx ibc-transfer transfer transfer channel-0 $FACHAIN_2 1000000000uosmo --from test1 --keyring-backend test --home ${DIR[1]} --chain-id test-osmo --fees 100000uosmo --yes --node ${NODE[1]}
+
 # setup pool on osmosis
 ${BINARY[0]} tx ibc-transfer transfer transfer channel-0 $OSMO_2 1000000000ufac --from test1 --keyring-backend test --home ${DIR[0]} --chain-id test-fac --fees 100000ufac --yes --node ${NODE[0]}
 
-sleep 10
+sleep 15
 
 # create pool
 IBC_DENOM=$(${BINARY[1]} q ibc-transfer denom-hash transfer/channel-0/ufac --node ${NODE[1]} -o json | jq -r .hash)
@@ -42,7 +45,7 @@ sed "s/IBCDENOM/$IBC_DENOM/g" $ROOT/scripts/network/fachain-osmosis-pool.json > 
 
 ${BINARY[1]} tx gamm create-pool --pool-file $ROOT/scripts/network/config/fachain-osmosis-pool.json --from test1 --keyring-backend test --home ${DIR[1]} --chain-id test-osmo --fees 100000uosmo --yes --node ${NODE[1]}
 
-sleep 10
+sleep 15
 
 POOL_NUM=$(${BINARY[1]} q gamm pools --node tcp://localhost:26357 -o json | jq '.pools | length')
 echo "Pool number: $POOL_NUM"

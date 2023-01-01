@@ -3,22 +3,6 @@
 ROOT=$(pwd)
 mkdir build
 
-install_fa_binary() {
-   cd "fa-chain"
-   GOBIN=$ROOT/build/binary go install -mod=readonly -trimpath ./...
-   local_build_succeeded=${PIPESTATUS[0]}
-
-   if [[ "$local_build_succeeded" == "0" ]]; then
-      echo "Done" 
-   else
-      echo "Failed"
-   fi
-
-   cd ..
-
-   return $local_build_succeeded
-}
-
 install_binary() {
    title=$1
    download=$2
@@ -62,12 +46,12 @@ build_docker() {
    return $docker_build_succeeded
 }
 
-install_fa_binary
 # install_binary juno https://github.com/CosmosContracts/juno.git 5875239f4e2d20646024a2c7f4a383fa45081e81
+install_binary fa-chain https://github.com/nghuyenthevinh2000/fa-chain.git main
 install_binary osmosis https://github.com/osmosis-labs/osmosis.git v13.1.2
-install_binary relayer https://github.com/cosmos/relayer.git andrew/client_icq
+install_binary relayer https://github.com/nghuyenthevinh2000/relayer.git andrew/client_icq_stride_v3
 
-build_docker fachain nil
+build_docker fachain main
 # build_docker juno 5875239f4e2d20646024a2c7f4a383fa45081e81
 build_docker osmosis v13.1.2
-build_docker relayer andrew/client_icq
+build_docker relayer andrew/client_icq_stride_v3
