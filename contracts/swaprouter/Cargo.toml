@@ -1,6 +1,6 @@
 [package]
 name        = "swaprouter"
-authors     = ["Jammyaa <chinhnd@smartosc.com>"]
+authors     = ["Sunny Aggarwal <sunnya97@protonmail.ch>"]
 description = "Swap contract on Osmosis"
 version     = { workspace = true }
 edition     = { workspace = true }

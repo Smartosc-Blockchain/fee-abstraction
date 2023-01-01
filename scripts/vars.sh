@@ -18,3 +18,7 @@ export DIR=( "$ROOT/scripts/network/config/fachain" "$ROOT/scripts/network/confi
 export DENOM=( "ufac" "uosmo" )
 export NODE=( "http://localhost:26457" "http://localhost:26357" )
 export CHAINID=( "test-fac" "test-osmo" )
+
+# export cross-chain contract addresses
+export SWAPROUTER_CONTRACT=osmo14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sq2r9g9
+export CROSSCHAIN_CONTRACT=osmo1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqvlx82r
