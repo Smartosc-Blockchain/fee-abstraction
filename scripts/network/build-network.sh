@@ -46,12 +46,12 @@ build_docker() {
    return $docker_build_succeeded
 }
 
-install_binary juno https://github.com/Smartosc-Blockchain/juno.git 67dbd631074aab748d8f7b8e080d11ddc406d1cc
-
+# install_binary juno https://github.com/Smartosc-Blockchain/juno.git 67dbd631074aab748d8f7b8e080d11ddc406d1cc
+install_binary fa-chain https://github.com/nghuyenthevinh2000/fa-chain.git main
 install_binary osmosis https://github.com/osmosis-labs/osmosis.git v13.1.2
+install_binary relayer https://github.com/nghuyenthevinh2000/relayer.git andrew/client_icq_stride_v3
 
-install_binary relayer https://github.com/cosmos/relayer.git andrew/client_icq
-
-build_docker juno 67dbd631074aab748d8f7b8e080d11ddc406d1cc
+build_docker fachain main
+# build_docker juno 67dbd631074aab748d8f7b8e080d11ddc406d1cc
 build_docker osmosis v13.1.2
-build_docker relayer andrew/client_icq
+build_docker relayer andrew/client_icq_stride_v3

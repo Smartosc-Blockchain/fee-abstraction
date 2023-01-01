@@ -4,16 +4,16 @@ global:
   memo: ""
   light-cache-size: 20
 chains:
-  juno:
+  fachain:
     type: cosmos
     value:
-      key: rly-juno
-      chain-id: test-juno
-      rpc-addr: http://juno:26657
-      account-prefix: juno
+      key: rly-fachain
+      chain-id: test-fac
+      rpc-addr: http://fachain:26657
+      account-prefix: fac
       keyring-backend: test
       gas-adjustment: 1.2
-      gas-prices: 0.01ujuno
+      gas-prices: 0.01ufac
       debug: false
       timeout: 20s
       output-format: json
@@ -33,9 +33,9 @@ chains:
       output-format: json
       sign-mode: direct
 paths:
-  juno-osmosis:
+  fachain-osmosis:
     src:
-      chain-id: test-juno
+      chain-id: test-fac
     dst:
       chain-id: test-osmo
     src-channel-filter:

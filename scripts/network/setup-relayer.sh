@@ -17,14 +17,14 @@ relayer_logs=$ROOT/scripts/network/logs/relayer.log
 relayer_exec="docker-compose -f $ROOT/scripts/network/docker-compose.yml run --rm relayer"
 
 mkdir -p $relayer_config
-# modify relayer-sc-config.yaml to reflect the correct contract address
-cp $ROOT/scripts/network/relayer-sc-config.yaml $relayer_config/config.yaml
+# modify relayer-config.yaml to reflect the correct contract address
+cp $ROOT/scripts/network/relayer-config.yaml $relayer_config/config.yaml
 
-$relayer_exec rly keys restore juno rly-juno "$MNEMONIC_3" >> $relayer_logs 2>&1
+$relayer_exec rly keys restore fachain rly-fachain "$MNEMONIC_3" >> $relayer_logs 2>&1
 $relayer_exec rly keys restore osmosis rly-osmo "$MNEMONIC_3" >> $relayer_logs 2>&1
 
 printf "Waiting for relayer to start..."
-$relayer_exec rly transact link juno-osmosis >> $relayer_logs 2>&1
+$relayer_exec rly transact link fachain-osmosis >> $relayer_logs 2>&1
 
 if [[ "${PIPESTATUS[0]}" = "1" ]]; then
     echo "Failed to link chains"

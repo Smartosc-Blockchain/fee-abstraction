@@ -13,3 +13,6 @@ check build-and-start-network.sh to start
 ## Note for starting
 1. pip install toml-cli
 2. turn off sudo for docker: https://github.com/sindresorhus/guides/blob/main/docker-without-sudo.md
+
+## Some good commands
+1. 

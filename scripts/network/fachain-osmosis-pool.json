@@ -1,0 +1,7 @@
+{
+    "weights": "5uosmo,10ibc/IBCDENOM",
+    "initial-deposit": "500000000uosmo,1000000000ibc/IBCDENOM",
+    "swap-fee": "0.01",
+    "exit-fee": "0.01",
+    "future-governor": "168h"
+}
