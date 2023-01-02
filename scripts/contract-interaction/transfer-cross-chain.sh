@@ -37,3 +37,5 @@ echo $RAW_LOG
 # check if account balance is updated
 BALANCE=$(${BINARY[1]} query bank balances "$DESTINATION_ACCOUNT" --chain-id "${CHAINID[1]}" --node "${NODE[1]}" --output json | jq -r .balances[])
 echo $BALANCE
+
+# ./build/binary/osmosisd tx ibc-transfer transfer transfer channel-0 juno1xrj7hrjg86fdd9ct7j4dluusgd6geghh52ff4j 1000000uosmo --from test --keyring-backend test --home "scripts/network/config/osmosis" --chain-id test-osmo -y --node "http://localhost:26357"

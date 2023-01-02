@@ -18,7 +18,7 @@ swaprouter_init_msg=$(jq --null-input --arg OWNER $OSMO_1 '{"owner": $OWNER}')
 INIT_MSG=( '' "$swaprouter_init_msg" '' )
 custom_init_msg() {
     if [ "${CONTRACT_ADDRESS[1]}" != "" ]; then
-        INIT_MSG[2]=$(jq --null-input --arg SWAPROUTER_CONTRACT "${CONTRACT_ADDRESS[1]}" '{"swap_contract": $SWAPROUTER_CONTRACT, "track_ibc_sends": false, "channels": [["juno", "channel-0"]]'})
+        INIT_MSG[2]=$(jq --null-input --arg SWAPROUTER_CONTRACT "${CONTRACT_ADDRESS[1]}" '{"swap_contract": $SWAPROUTER_CONTRACT, "track_ibc_sends": false, "channels": [["fac", "channel-0"]]'})
     fi
 }
 

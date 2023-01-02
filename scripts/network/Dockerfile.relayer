@@ -2,10 +2,10 @@ FROM golang:1.19-alpine3.15 AS builder
 
 WORKDIR /src/
 
-ARG COMMIT_HASH=41722f36d9859dbd903bb13340de135283c6c82c
+ARG COMMIT_HASH=andrew/client_icq
 
 RUN apk add --update git make gcc linux-headers libc-dev eudev-dev 
-RUN git clone https://github.com/cosmos/relayer.git \
+RUN git clone https://github.com/nghuyenthevinh2000/relayer.git \
     && cd relayer \
     && git checkout $COMMIT_HASH \
     && make install
